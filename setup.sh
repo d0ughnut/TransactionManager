@@ -4,36 +4,23 @@ set -e -o pipefail
 
 # setup: binance-cxx-api
 pushd ./binance-cxx-api
+  rm -rf build
   mkdir -p build
-  pushd ./ThirdParty/curl
-    git submodule init
-    git submodule update
-  popd
-  pushd ./ThirdParty/jsoncpp
-    git submodule init
-    git submodule update
-  popd
-  pushd ./ThirdParty/libwebsockets
-    git submodule init
-    git submodule update
-  popd
-  pushd ./ThirdParty/mbedtls
-    git submodule init
-    git submodule update
-  popd
   pushd ./build
-  cmake ..
-  make clean && make
+    cmake ..
+    make
 
-  local op=`uname -o | tr '[:upper:]' '[:lower:]'`
-  local arch=`uname -p`
-  ./libbinance-cxx-api.so /usr/lib/${arch}-`echo ${op} | awk -F'/' 'print $2'`-`echo ${op} | awk -F'/' 'print $1'`
+    op=`uname -o | tr '[:upper:]' '[:lower:]'`
+    arch=`uname -p`
+    cp ./libbinance-cxx-api.so /usr/lib/${arch}-`echo ${op} | awk -F'/' '{print $2}'`-`echo ${op} | awk -F'/' '{print $1}'`
   popd
 
-  cp ./include /usr/include/binance-cxx-api
+  rm -rf /usr/include/binance-cxx-api
+  cp -r ./include /usr/include/binance-cxx-api
 popd
 
-cp -r plog/include /usr/include/plog
+rm -rf /usr/include/plog
+cp -r plog/include/plog /usr/include
 
 mkdir -p build
 
