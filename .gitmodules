@@ -1,3 +1,6 @@
 [submodule "binance-cxx-api"]
 	path = binance-cxx-api
 	url = https://github.com/d0ughnut/binance-cxx-api
+[submodule "plog"]
+	path = plog
+	url = https://github.com/SergiusTheBest/plog.git
