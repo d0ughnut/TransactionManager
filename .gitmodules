@@ -1,0 +1,3 @@
+[submodule "binance-cxx-api"]
+	path = binance-cxx-api
+	url = https://github.com/d0ughnut/binance-cxx-api
