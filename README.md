@@ -23,3 +23,13 @@ libcurl4-gnutls-dev
 $ cd TransactionManager
 $ sudo ./setup.sh
 ```
+
+## Configure
+
+* configure `/etc/binance/config.ini`.
+
+## Run
+
+```bash
+$ TransactionManager
+```
