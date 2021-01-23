@@ -10,7 +10,7 @@ $ git clone --recurse-submodules https://github.com/d0ughnut/TransactionManager.
 
 ```
 build-essential
-cmake (>= 3.19.3)
+cmake (>= 3.13.4)
 pkg-config
 libglib2.0-dev
 libjsoncpp-dev

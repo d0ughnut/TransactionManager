@@ -2,6 +2,12 @@
 
 set -e -o pipefail
 
+if [[ ${USER} -ne ${root} ]]
+then
+  echo "run as root."
+  exit 1
+fi
+
 # setup: binance-cxx-api
 pushd ./binance-cxx-api
   rm -rf build
