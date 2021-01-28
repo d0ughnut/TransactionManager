@@ -227,9 +227,8 @@ ApiStore::get_kline(
     if (ret == binanceSuccess) {
       break;
     } else {
-      --retry;
       PLOG_WARNING.printf("Failed to request. Try Again (Last: %d)", retry); 
-      if (retry <= 0) {
+      if (--retry <= 0) {
         PLOG_ERROR << "Failed to get KLine.";
         return Result::Failed;
       }
@@ -253,8 +252,7 @@ ApiStore::get_balance(const char* symbol)
     if (ret == binanceSuccess) {
       break;
     } else {
-      --retry;
-      if (retry <= 0) {
+      if (--retry <= 0) {
         PLOG_ERROR << "Falied to get balance.";
         return -1;
       }
@@ -288,8 +286,7 @@ ApiStore::purchase(const char* symbol, float balance)
     if (ret == binanceSuccess) {
       break;
     } else {
-      --retry;
-      if (retry <= 0) goto _FAIL;
+      if (--retry <= 0) goto _FAIL;
     }
   }
 
@@ -300,12 +297,11 @@ ApiStore::purchase(const char* symbol, float balance)
   retry = API_CALL_LEFT;
 
   while (retry > 0) {
-    ret = m_account.sendOrder(buffer, symbol, "BUY", "LIMIT", "GTC", qty, lim_price, "0", 0, 0, RECV_WINDOW);
+    ret = m_account.sendOrder(buffer, symbol, "BUY", "MARKET", "", qty, 0, "0", 0, 0, RECV_WINDOW);
     if (ret == binanceSuccess) {
       break;
     } else {
-      --retry;
-      if (retry <= 0) goto _FAIL;
+      if (--retry <= 0) goto _FAIL;
     }
   }
 
@@ -333,8 +329,7 @@ ApiStore::sell(const char* symbol, float balance)
     if (ret == binanceSuccess) {
       break;
     } else {
-      --retry;
-      if (retry < 0) goto _FAIL;
+      if (--retry < 0) goto _FAIL;
     }
   }
 
@@ -345,18 +340,17 @@ ApiStore::sell(const char* symbol, float balance)
   retry = API_CALL_LEFT;
 
   while (retry > 0) {
-    ret = m_account.sendOrder(buffer, symbol, "SELL", "LIMIT", "GTC", qty, lim_price, "0", 0, 0, RECV_WINDOW);
+    ret = m_account.sendOrder(buffer, symbol, "SELL", "MARKET", "", qty, 0, "0", 0, 0, RECV_WINDOW);
     if (ret == binanceSuccess) {
       break;
     } else {
-      --retry;
-      if (retry < 0) goto _FAIL;
+      if (--retry < 0) goto _FAIL;
     }
   }
 
   return Result::Success;
 
 _FAIL:
-  PLOG_ERROR << "Failed to sell";
+  PLOG_ERROR << "Failed to sell.";
   return Result::Failed;
 }
