@@ -290,8 +290,8 @@ ApiStore::purchase(const char* symbol, float balance)
     }
   }
 
-  lim_price = price + limit_offset;
-  qty = balance / lim_price;
+  // 0.9 は確実に買うための保険
+  qty = (balance / price) * 0.9;
   std::cout << "qty: " << qty << std::endl;
 
   retry = API_CALL_LEFT;
@@ -320,7 +320,6 @@ ApiStore::sell(const char* symbol, float balance)
 
   int retry = API_CALL_LEFT;
   double price;
-  const double limit_offset = 5.0;
   double lim_price;
   double qty;
 
@@ -333,7 +332,6 @@ ApiStore::sell(const char* symbol, float balance)
     }
   }
 
-  lim_price = price - limit_offset;
   qty = balance;
   std::cout << "qty: " << qty << std::endl;
 
