@@ -15,7 +15,7 @@
 // #define DEBUG
 // #define PURCHASE_TEST
 // #define SELL_TEST
-// #define DO_TRANSCATION
+#define DO_TRANSCATION
 
 TransactionManager::TransactionManager()
 {
@@ -89,6 +89,7 @@ TransactionManager::connect_to_client()
       result = m_packet->con();
       if (result != Result::Success) {
         PLOG_WARNING << "Connection canceled.";
+        m_packet = nullptr;
         goto _FAIL;
       }
       PLOG_INFO.printf("Connected to client.");
@@ -105,6 +106,8 @@ void TransactionManager::exec() {
 
   float server_timestamp;
   float macd_value, signal_value;
+
+  Result result;
 
   // event loop
   while (1) {
@@ -137,23 +140,37 @@ void TransactionManager::exec() {
     bool should_purchase = macd_value > signal_value;
     StateManager::State next_state = m_state->get_next_state(should_purchase);
 
-    float balance;
+    float src_balance, dst_balance;
     switch (next_state) {
       case StateManager::State::BUY:
         PLOG_INFO << "Should be purchased.";
 #ifdef DO_TRANSCATION
-        balance = m_api->get_balance(m_dst_symbol.c_str());
-        PLOG_INFO.printf("Balance: %f", balance);
-        result = m_api->purchase(m_symbol, balance);
+        src_balance = m_api->get_balance(m_src_currency.c_str());
+        dst_balance = m_api->get_balance(m_dst_currency.c_str());
+
+        if (src_balance > dst_balance) {
+          PLOG_WARNING.printf("ignored transaction (purchase). src: %f, dst: %f", src_balance, dst_balance);
+          break;
+        }
+
+        PLOG_INFO.printf("Balance: %f", dst_balance);
+        result = m_api->purchase(m_symbol.c_str(), dst_balance);
         if (result != Result::Success) goto _ABORT;
 #endif
         break;
       case StateManager::State::SELL:
         PLOG_INFO << "Should be sell it.";
 #ifdef DO_TRANSCATION
-        balance = m_api->get_balance(m_src_symbol.c_str());
-        PLOG_INFO.printf("Balance: %f", balance);
-        result = m_api->sell(m_symbol.c_str(), balance);
+        src_balance = m_api->get_balance(m_src_currency.c_str());
+        dst_balance = m_api->get_balance(m_dst_currency.c_str());
+
+        if (src_balance < dst_balance) {
+          PLOG_WARNING.printf("ignored transaction (sell). src: %f, dst: %f", src_balance, dst_balance);
+          break;
+        }
+
+        PLOG_INFO.printf("Balance: %f", src_balance);
+        result = m_api->sell(m_symbol.c_str(), src_balance);
         if (result != Result::Success) goto _ABORT;
 #endif
         break;
