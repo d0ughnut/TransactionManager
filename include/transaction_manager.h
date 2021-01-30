@@ -27,6 +27,7 @@ class TransactionManager
 
     std::string m_src_currency, m_dst_currency;
     std::string m_symbol;
+    int m_api_req_interval_sec;
 
     Result load_param_from_config();
     Result connect_to_client();

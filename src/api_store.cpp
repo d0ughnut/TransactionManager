@@ -277,8 +277,6 @@ ApiStore::purchase(const char* symbol, float balance)
 
   int retry = API_CALL_LEFT;
   double price;
-  const double limit_offset = 5.0;
-  double lim_price;
   double qty;
 
   price = get_price(symbol);
@@ -286,9 +284,9 @@ ApiStore::purchase(const char* symbol, float balance)
     return Result::Failed;
   }
 
-  // 0.9 は確実に買うため
-  qty = (balance / price) * 0.9;
-  qty = Utils::round_n(qty, 4);
+  // 0.9 は確実に買う為の保険
+  qty = (balance / price) * 0.90;
+  qty = Utils::round_n(qty, 5);
 
   PLOG_INFO.printf("qty: %f", qty);
 
@@ -319,9 +317,9 @@ ApiStore::sell(const char* symbol, float balance)
   int retry = API_CALL_LEFT;
   double qty;
 
-  // 0.9 は確実に売る為
-  qty = Utils::round_n(balance, 4) * 0.9;
-  std::cout << "qty: " << qty << std::endl;
+  // 0.95 は確実に売る為の保険
+  qty = Utils::round_n(balance * 0.95, 5);
+  PLOG_INFO.printf("qty: %f", qty);
 
   retry = API_CALL_LEFT;
 
@@ -352,7 +350,7 @@ ApiStore::get_price(const char* symbol)
     if (ret == binanceSuccess) {
       break;
     } else {
-      return -1;
+      if (--retry < 0) return -1;
     }
   }
 

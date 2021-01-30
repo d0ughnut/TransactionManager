@@ -11,11 +11,12 @@
 #include "state.h"
 #include "config_accessor.h"
 
+///// DEBUG_FLG
 // #define WALLET_TEST
 // #define DEBUG
 // #define PURCHASE_TEST
 // #define SELL_TEST
-#define DO_TRANSCATION
+// #define IGNORE_TRANSCATION
 
 TransactionManager::TransactionManager()
 {
@@ -71,6 +72,9 @@ TransactionManager::load_param_from_config()
     goto _FAIL;
   }
 
+  m_api_req_interval_sec = m_config->get_api_request_interval_sec();
+  if (m_api_req_interval_sec < 0) goto _FAIL;
+
   m_symbol = m_src_currency + m_dst_currency;
 
   return Result::Success;
@@ -102,7 +106,7 @@ _FAIL:
 }
 
 void TransactionManager::exec() {
-  struct timespec t = {5, 0};
+  struct timespec t = {m_api_req_interval_sec, 0};
 
   float server_timestamp;
   float macd_value, signal_value;
@@ -146,7 +150,7 @@ void TransactionManager::exec() {
     switch (next_state) {
       case StateManager::State::BUY:
         PLOG_INFO << "Should be purchased.";
-#ifdef DO_TRANSCATION
+#ifndef IGNORE_TRANSCATION
         src_balance = m_api->get_balance(m_src_currency.c_str());
         dst_balance = m_api->get_balance(m_dst_currency.c_str());
         src_per_dst = m_api->get_price(m_symbol.c_str());
@@ -167,7 +171,7 @@ void TransactionManager::exec() {
         break;
       case StateManager::State::SELL:
         PLOG_INFO << "Should be sell it.";
-#ifdef DO_TRANSCATION
+#ifndef IGNORE_TRANSCATION
         src_balance = m_api->get_balance(m_src_currency.c_str());
         dst_balance = m_api->get_balance(m_dst_currency.c_str());
         src_price = m_api->get_price(m_symbol.c_str());
@@ -189,7 +193,6 @@ void TransactionManager::exec() {
         break;
     }
 
-    PLOG_DEBUG.printf("Cooldown... (%d sec)", 5);
     nanosleep(&t, NULL);
   }
 
