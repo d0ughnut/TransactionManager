@@ -17,7 +17,7 @@ class StateManager {
     StateManager(ConfigAccessor* config);
     ~StateManager();
 
-    StateManager::State get_next_state(bool should_buy);
+    StateManager::State get_next_state(bool should_purcahse);
   private:
     StateManager::State m_cur_state;
 

@@ -20,48 +20,48 @@ StateManager::~StateManager()
 }
 
 StateManager::State
-StateManager::get_next_state(bool should_buy) {
+StateManager::get_next_state(bool should_purchase) {
 
   StateManager::State next_state = m_cur_state;
 
   switch (m_cur_state) {
     case StateManager::State::IDLE:
-      if (should_buy) {
+      if (should_purchase) {
         next_state = StateManager::State::READY_B;
       } else {
         next_state = StateManager::State::READY_S;
       }
       break;
     case StateManager::State::BUY:
-      if (should_buy) {
+      if (should_purchase) {
         next_state = StateManager::State::BOUGHT;
       } else {
         next_state = StateManager::State::READY_B;
       }
       break;
     case StateManager::State::SELL:
-      if (should_buy) {
+      if (should_purchase) {
         next_state = StateManager::State::READY_S;
       } else {
         next_state = StateManager::State::SOLD;
       }
       break;
     case StateManager::State::BOUGHT:
-      if (should_buy) {
+      if (should_purchase) {
         next_state = StateManager::State::BOUGHT;
       } else {
         next_state = StateManager::State::READY_S;
       }
       break;
     case StateManager::State::SOLD:
-      if (should_buy) {
+      if (should_purchase) {
         next_state = StateManager::State::READY_B;
       } else {
         next_state = StateManager::State::SOLD;
       }
       break;
     case StateManager::State::READY_B:
-      if (should_buy) {
+      if (should_purchase) {
         if (++m_waited_count >= m_wait_limit) {
           next_state = StateManager::State::BUY;
         }
@@ -70,7 +70,7 @@ StateManager::get_next_state(bool should_buy) {
       }
       break;
     case StateManager::State::READY_S:
-      if (should_buy) {
+      if (should_purchase) {
         next_state = StateManager::State::READY_B;
       } else {
         if (++m_waited_count >= m_wait_limit) {
