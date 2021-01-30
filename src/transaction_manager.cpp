@@ -141,15 +141,22 @@ void TransactionManager::exec() {
     StateManager::State next_state = m_state->get_next_state(should_purchase);
 
     float src_balance, dst_balance;
+    double src_price, dst_price;
+    double src_per_dst;
     switch (next_state) {
       case StateManager::State::BUY:
         PLOG_INFO << "Should be purchased.";
 #ifdef DO_TRANSCATION
         src_balance = m_api->get_balance(m_src_currency.c_str());
         dst_balance = m_api->get_balance(m_dst_currency.c_str());
+        src_per_dst = m_api->get_price(m_symbol.c_str());
 
-        if (src_balance > dst_balance) {
-          PLOG_WARNING.printf("ignored transaction (purchase). src: %f, dst: %f", src_balance, dst_balance);
+        PLOG_INFO.printf("src_balance: %f", src_balance);
+        PLOG_INFO.printf("dst_balance: %f", dst_balance);
+
+        PLOG_INFO.printf("transaction (purchase). src: %f, dst: %f", src_balance * src_per_dst, dst_balance);
+        if ((src_balance * src_per_dst) > (dst_balance)) {
+          PLOG_WARNING << "ignored transaction (purchase).";
           break;
         }
 
@@ -163,9 +170,12 @@ void TransactionManager::exec() {
 #ifdef DO_TRANSCATION
         src_balance = m_api->get_balance(m_src_currency.c_str());
         dst_balance = m_api->get_balance(m_dst_currency.c_str());
+        src_price = m_api->get_price(m_symbol.c_str());
+        dst_price = m_api->get_price(m_symbol.c_str());
 
-        if (src_balance < dst_balance) {
-          PLOG_WARNING.printf("ignored transaction (sell). src: %f, dst: %f", src_balance, dst_balance);
+        PLOG_INFO.printf("transaction (sell). src: %f, dst: %f", src_balance * src_per_dst, dst_balance);
+        if ((src_balance * src_per_dst) < (dst_balance)) {
+          PLOG_WARNING << "ignored transaction (sell).";
           break;
         }
 

@@ -281,18 +281,16 @@ ApiStore::purchase(const char* symbol, float balance)
   double lim_price;
   double qty;
 
-  while (1) {
-    ret = m_market.getPrice(symbol, price);
-    if (ret == binanceSuccess) {
-      break;
-    } else {
-      if (--retry <= 0) goto _FAIL;
-    }
+  price = get_price(symbol);
+  if (price < 0) {
+    return Result::Failed;
   }
 
-  // 0.9 は確実に買うための保険
+  // 0.9 は確実に買うため
   qty = (balance / price) * 0.9;
-  std::cout << "qty: " << qty << std::endl;
+  qty = Utils::round_n(qty, 4);
+
+  PLOG_INFO.printf("qty: %f", qty);
 
   retry = API_CALL_LEFT;
 
@@ -319,20 +317,10 @@ ApiStore::sell(const char* symbol, float balance)
   binanceError_t ret;
 
   int retry = API_CALL_LEFT;
-  double price;
-  double lim_price;
   double qty;
 
-  while (retry > 0) {
-    ret = m_market.getPrice(symbol, price);
-    if (ret == binanceSuccess) {
-      break;
-    } else {
-      if (--retry < 0) goto _FAIL;
-    }
-  }
-
-  qty = balance;
+  // 0.9 は確実に売る為
+  qty = Utils::round_n(balance, 4) * 0.9;
   std::cout << "qty: " << qty << std::endl;
 
   retry = API_CALL_LEFT;
@@ -351,4 +339,22 @@ ApiStore::sell(const char* symbol, float balance)
 _FAIL:
   PLOG_ERROR << "Failed to sell.";
   return Result::Failed;
+}
+
+double
+ApiStore::get_price(const char* symbol)
+{
+  int retry = API_CALL_LEFT;
+
+  double price = 0;
+  while (retry > 0) {
+    binanceError_t ret = m_market.getPrice(symbol, price);
+    if (ret == binanceSuccess) {
+      break;
+    } else {
+      return -1;
+    }
+  }
+
+  return price;
 }

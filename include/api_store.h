@@ -53,6 +53,7 @@ class ApiStore {
     long get_server_unix_time();
 
     float get_balance(const char* symbol);
+    double get_price(const char* symbol);
     Result purchase(const char* symbol, float balance);
     Result sell(const char* symbol, float balance);
 
