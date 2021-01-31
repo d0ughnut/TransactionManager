@@ -4,13 +4,11 @@
 
 #include "result.h"
 
-class Utils {
-  public:
-    static Result make_directory(const std::string& path);
-    static bool is_exist(const std::string& path);
-    static double round_n(double number, int n);
+namespace FileUtils {
+  Result make_directory(const std::string& path);
+  bool is_exist(const std::string& path);
+}
 
-  private:
-    Utils();
-    ~Utils();
-};
+namespace MathUtils {
+  double round_n(double number, int n);
+}

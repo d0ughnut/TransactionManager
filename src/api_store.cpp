@@ -40,8 +40,8 @@ ApiStore::initialize()
     return Result::Failed;
   }
 
-  if (!Utils::is_exist(API_DIR)) {
-    result = Utils::make_directory(API_DIR);
+  if (!FileUtils::is_exist(API_DIR)) {
+    result = FileUtils::make_directory(API_DIR);
     if (result != Result::Success) return Result::Failed;
   }
 
@@ -286,7 +286,7 @@ ApiStore::purchase(const char* symbol, float balance)
 
   // 0.9 は確実に買う為の保険
   qty = (balance / price) * 0.90;
-  qty = Utils::round_n(qty, 5);
+  qty = MathUtils::round_n(qty, 5);
 
   PLOG_INFO.printf("qty: %f", qty);
 
@@ -318,7 +318,7 @@ ApiStore::sell(const char* symbol, float balance)
   double qty;
 
   // 0.95 は確実に売る為の保険
-  qty = Utils::round_n(balance * 0.95, 5);
+  qty = MathUtils::round_n(balance * 0.95, 5);
   PLOG_INFO.printf("qty: %f", qty);
 
   retry = API_CALL_LEFT;
