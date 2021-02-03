@@ -2,12 +2,6 @@
 
 set -e -o pipefail
 
-if [[ ${USER} -ne ${root} ]]
-then
-  echo "run as root."
-  exit 1
-fi
-
 # setup: binance-cxx-api
 pushd ./binance-cxx-api
   rm -rf build
@@ -18,15 +12,15 @@ pushd ./binance-cxx-api
 
     op=`uname -o | tr '[:upper:]' '[:lower:]'`
     arch=`uname -p`
-    cp ./libbinance-cxx-api.so /usr/lib/${arch}-`echo ${op} | awk -F'/' '{print $2}'`-`echo ${op} | awk -F'/' '{print $1}'`
+    sudo cp ./libbinance-cxx-api.so /usr/lib/${arch}-`echo ${op} | awk -F'/' '{print $2}'`-`echo ${op} | awk -F'/' '{print $1}'`
   popd
 
-  rm -rf /usr/include/binance-cxx-api
-  cp -r ./include /usr/include/binance-cxx-api
+  sudo rm -rf /usr/include/binance-cxx-api
+  sudo cp -r ./include /usr/include/binance-cxx-api
 popd
 
-rm -rf /usr/include/plog
-cp -r plog/include/plog /usr/include
+sudo rm -rf /usr/include/plog
+sudo cp -r plog/include/plog /usr/include
 
 mkdir -p build
 
