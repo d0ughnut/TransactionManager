@@ -21,7 +21,7 @@ libcurl4-gnutls-dev
 
 ```bash
 $ cd TransactionManager
-$ sudo ./setup.sh
+$ ./setup.sh
 ```
 
 ## Configure
