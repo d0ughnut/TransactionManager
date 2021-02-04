@@ -40,7 +40,7 @@ TransactionManager::initialize()
   result = m_api->initialize();
   if (result != Result::Success) goto _FAIL;
 
-  m_state = std::make_unique<StateManager>(m_config.get());
+  m_state = std::make_unique<StateManager>(m_config.get(), this);
   if (!m_state) goto _FAIL;
 
   m_packet = std::make_unique<PacketSender>(m_config.get());
@@ -105,13 +105,64 @@ _FAIL:
   return Result::Failed;
 }
 
+Result
+TransactionManager::purchase()
+{
+  float src_balance, dst_balance;
+  double src_per_dst;
+  PLOG_INFO << "Should be purchased.";
+#ifndef IGNORE_TRANSCATION
+  src_balance = m_api->get_balance(m_src_currency.c_str());
+  dst_balance = m_api->get_balance(m_dst_currency.c_str());
+  src_per_dst = m_api->get_price(m_symbol.c_str());
+
+  PLOG_INFO.printf("src_balance: %f", src_balance);
+  PLOG_INFO.printf("dst_balance: %f", dst_balance);
+
+  PLOG_INFO.printf("transaction (purchase). src: %f, dst: %f", src_balance * src_per_dst, dst_balance);
+  if ((src_balance * src_per_dst) > (dst_balance)) {
+    PLOG_WARNING << "ignored transaction (purchase).";
+    return Result::Success;
+  }
+
+  PLOG_INFO.printf("Balance: %f", dst_balance);
+  return m_api->purchase(m_symbol.c_str(), dst_balance);
+#else
+  return Result::Success;
+#endif
+}
+
+Result
+TransactionManager::sell()
+{
+  float src_price, dst_price;
+  float src_balance, dst_balance;
+  double src_per_dst;
+  PLOG_INFO << "Should be sell it.";
+#ifndef IGNORE_TRANSCATION
+  src_balance = m_api->get_balance(m_src_currency.c_str());
+  dst_balance = m_api->get_balance(m_dst_currency.c_str());
+  src_price = m_api->get_price(m_symbol.c_str());
+  dst_price = m_api->get_price(m_symbol.c_str());
+
+  PLOG_INFO.printf("transaction (sell). src: %f, dst: %f", src_balance * src_per_dst, dst_balance);
+  if ((src_balance * src_per_dst) < (dst_balance)) {
+    PLOG_WARNING << "ignored transaction (sell).";
+    return Result::Success;
+  }
+
+  PLOG_INFO.printf("Balance: %f", src_balance);
+  return m_api->sell(m_symbol.c_str(), src_balance);
+#else
+  return Result::Success;
+#endif
+}
+
 void TransactionManager::exec() {
   struct timespec t = {m_api_req_interval_sec, 0};
 
   float server_timestamp;
   float macd_value, signal_value;
-
-  Result result;
 
   // event loop
   while (1) {
@@ -141,61 +192,13 @@ void TransactionManager::exec() {
       m_packet->send_packet(&data);
     }
 
-    bool should_purchase = macd_value > signal_value;
-    StateManager::State next_state = m_state->get_next_state(should_purchase);
-
-    float src_balance, dst_balance;
-    double src_price, dst_price;
-    double src_per_dst;
-    switch (next_state) {
-      case StateManager::State::BUY:
-        PLOG_INFO << "Should be purchased.";
-#ifndef IGNORE_TRANSCATION
-        src_balance = m_api->get_balance(m_src_currency.c_str());
-        dst_balance = m_api->get_balance(m_dst_currency.c_str());
-        src_per_dst = m_api->get_price(m_symbol.c_str());
-
-        PLOG_INFO.printf("src_balance: %f", src_balance);
-        PLOG_INFO.printf("dst_balance: %f", dst_balance);
-
-        PLOG_INFO.printf("transaction (purchase). src: %f, dst: %f", src_balance * src_per_dst, dst_balance);
-        if ((src_balance * src_per_dst) > (dst_balance)) {
-          PLOG_WARNING << "ignored transaction (purchase).";
-          break;
-        }
-
-        PLOG_INFO.printf("Balance: %f", dst_balance);
-        result = m_api->purchase(m_symbol.c_str(), dst_balance);
-        if (result != Result::Success) goto _ABORT;
-#endif
-        break;
-      case StateManager::State::SELL:
-        PLOG_INFO << "Should be sell it.";
-#ifndef IGNORE_TRANSCATION
-        src_balance = m_api->get_balance(m_src_currency.c_str());
-        dst_balance = m_api->get_balance(m_dst_currency.c_str());
-        src_price = m_api->get_price(m_symbol.c_str());
-        dst_price = m_api->get_price(m_symbol.c_str());
-
-        PLOG_INFO.printf("transaction (sell). src: %f, dst: %f", src_balance * src_per_dst, dst_balance);
-        if ((src_balance * src_per_dst) < (dst_balance)) {
-          PLOG_WARNING << "ignored transaction (sell).";
-          break;
-        }
-
-        PLOG_INFO.printf("Balance: %f", src_balance);
-        result = m_api->sell(m_symbol.c_str(), src_balance);
-        if (result != Result::Success) goto _ABORT;
-#endif
-        break;
-      default:
-        // idling.
-        break;
+    Result ret = m_state->exec(macd_value, signal_value);
+    if (ret != Result::Success) {
+      PLOG_ERROR << "Failed to manage state.";
+      return;
     }
 
+    // cooldown
     nanosleep(&t, NULL);
   }
-
-_ABORT:
-  PLOG_FATAL << "Failed to exec.";
 }

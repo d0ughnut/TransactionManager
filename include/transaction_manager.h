@@ -9,6 +9,8 @@
 #include "packet_sender.h"
 #include "state.h"
 
+class StateManager;
+
 class TransactionManager
 {
   public:
@@ -17,6 +19,8 @@ class TransactionManager
 
     Result initialize();
     void exec();
+    Result purchase();
+    Result sell();
   private:
     std::unique_ptr<ConfigAccessor> m_config;
     std::unique_ptr<ApiStore> m_api;
