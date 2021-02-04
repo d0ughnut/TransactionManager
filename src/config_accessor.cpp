@@ -107,6 +107,12 @@ ConfigAccessor::get_sell_to_symbol()
   return get_string_value("transaction", "sell_to");
 }
 
+int
+ConfigAccessor::get_cci_length()
+{
+  return get_integer_value("cci", "length");
+}
+
 std::string
 ConfigAccessor::get_string_value(const char* group, const char* key)
 {
