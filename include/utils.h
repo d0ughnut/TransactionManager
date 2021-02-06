@@ -12,8 +12,8 @@ namespace FileUtils {
 namespace MathUtils {
   double round_n(double number, int n);
 
-  template<class N> 
-  N abs(N num) {
+  template <class N>
+  inline N abs(N num) {
     return (num >= 0) ? num : -num;
   };
 }
