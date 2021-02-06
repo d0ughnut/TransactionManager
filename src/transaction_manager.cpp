@@ -16,7 +16,7 @@
 // #define DEBUG
 // #define PURCHASE_TEST
 // #define SELL_TEST
-// #define IGNORE_TRANSCATION
+// #define IGNORE_TRANSACTION
 
 TransactionManager::TransactionManager()
 {
@@ -111,7 +111,7 @@ TransactionManager::purchase()
   float src_balance, dst_balance;
   double src_per_dst;
   PLOG_INFO << "Should be purchased.";
-#ifndef IGNORE_TRANSCATION
+#ifndef IGNORE_TRANSACTION
   src_balance = m_api->get_balance(m_src_currency.c_str());
   dst_balance = m_api->get_balance(m_dst_currency.c_str());
   src_per_dst = m_api->get_price(m_symbol.c_str());
@@ -139,7 +139,7 @@ TransactionManager::sell()
   float src_balance, dst_balance;
   double src_per_dst;
   PLOG_INFO << "Should be sell it.";
-#ifndef IGNORE_TRANSCATION
+#ifndef IGNORE_TRANSACTION
   src_balance = m_api->get_balance(m_src_currency.c_str());
   dst_balance = m_api->get_balance(m_dst_currency.c_str());
   src_price = m_api->get_price(m_symbol.c_str());
