@@ -12,10 +12,6 @@
 #include "config_accessor.h"
 
 ///// DEBUG_FLG
-// #define WALLET_TEST
-// #define DEBUG
-// #define PURCHASE_TEST
-// #define SELL_TEST
 // #define IGNORE_TRANSACTION
 
 TransactionManager::TransactionManager()

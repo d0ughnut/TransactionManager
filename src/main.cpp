@@ -11,8 +11,8 @@ int main()
 {
   Result result;
 
-  static plog::ColorConsoleAppender<plog::TxtFormatter> consoleAppender;
-  plog::init(plog::info, &consoleAppender);
+  static plog::ColorConsoleAppender<plog::TxtFormatter> console_appender;
+  plog::init(plog::info, &console_appender);
 
   PLOG_INFO << "Booted.";
 
