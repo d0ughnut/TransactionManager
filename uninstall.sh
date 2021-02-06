@@ -9,8 +9,6 @@ sudo rm -rf /usr/include/plog
 sudo rm -rf /usr/local/bin/TransactionManager
 sudo rm -rf /etc/binance/config.ini
 
-sudo systemctl stop transaction-manager
-
 service=`systemctl show transaction-manager | grep FragmentPath | awk -F= '{print $2}'`
 
 sudo systemctl stop transaction-manager
