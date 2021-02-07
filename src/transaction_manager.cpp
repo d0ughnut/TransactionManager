@@ -154,7 +154,8 @@ TransactionManager::sell()
 #endif
 }
 
-void TransactionManager::exec() {
+void
+TransactionManager::exec() {
   struct timespec t = {m_api_req_interval_sec, 0};
 
   float server_timestamp;
