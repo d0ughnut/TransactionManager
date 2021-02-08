@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include "api_store.h"
+#include "constant.h"
 #include "utils.h"
 
 const int ApiStore::API_CALL_LEFT = 5;
@@ -173,7 +174,8 @@ ApiStore::get_c_pricies_from_klines(Json::Value& result)
   std::vector<float> list;
 
   for (auto i = 0; i < result.size(); ++i) {
-    list.push_back(std::stof(result[i][4].asString()));
+    // 終値を取得
+    list.push_back(std::stof(result[i][ResponseTag::Kline::CLOSE].asString()));
   }
 
   return list;
@@ -355,4 +357,10 @@ ApiStore::get_price(const char* symbol)
   }
 
   return price;
+}
+
+double
+ApiStore::get_cci(const char* symbol, int range)
+{
+  return 0;
 }

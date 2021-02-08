@@ -54,6 +54,7 @@ class ApiStore {
 
     float get_balance(const char* symbol);
     double get_price(const char* symbol);
+    double get_cci(const char* symbol, int range);
     Result purchase(const char* symbol, float balance);
     Result sell(const char* symbol, float balance);
 
