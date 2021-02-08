@@ -26,19 +26,23 @@ Result
 TransactionManager::initialize()
 {
   Result result;
+  // config 読込
   m_config = std::make_unique<ConfigAccessor>();
   result = load_param_from_config();
   if (result != Result::Success) goto _FAIL;
 
+  // api wrappeer 初期化
   m_api = std::make_unique<ApiStore>(m_config.get());
   if (!m_api) goto _FAIL;
 
   result = m_api->initialize();
   if (result != Result::Success) goto _FAIL;
 
+  // 状態管理
   m_state = std::make_unique<StateManager>(m_config.get(), this);
   if (!m_state) goto _FAIL;
 
+  // クライアント接続 (失敗しても無視)
   m_packet = std::make_unique<PacketSender>(m_config.get());
   result = connect_to_client();
 
@@ -71,6 +75,7 @@ TransactionManager::load_param_from_config()
   m_api_req_interval_sec = m_config->get_api_request_interval_sec();
   if (m_api_req_interval_sec < 0) goto _FAIL;
 
+  // e.g. "BTCUSDT"
   m_symbol = m_src_currency + m_dst_currency;
 
   return Result::Success;
@@ -108,14 +113,17 @@ TransactionManager::purchase()
   double src_per_dst;
   PLOG_INFO << "Should be purchased.";
 #ifndef IGNORE_TRANSACTION
+  // 対象の通貨の残高をウォレットから取得
   src_balance = m_api->get_balance(m_src_currency.c_str());
   dst_balance = m_api->get_balance(m_dst_currency.c_str());
+  // 現在の価格を取得
   src_per_dst = m_api->get_price(m_symbol.c_str());
 
   PLOG_INFO.printf("src_balance: %f", src_balance);
   PLOG_INFO.printf("dst_balance: %f", dst_balance);
 
   PLOG_INFO.printf("transaction (purchase). src: %f, dst: %f", src_balance * src_per_dst, dst_balance);
+  // 買えない、買う必要がない場合は取引機会を無視
   if ((src_balance * src_per_dst) > (dst_balance)) {
     PLOG_WARNING << "ignored transaction (purchase).";
     return Result::Success;
@@ -131,17 +139,18 @@ TransactionManager::purchase()
 Result
 TransactionManager::sell()
 {
-  float src_price, dst_price;
   float src_balance, dst_balance;
   double src_per_dst;
   PLOG_INFO << "Should be sell it.";
 #ifndef IGNORE_TRANSACTION
+  // 対象の通貨の残高をウォレットから取得
   src_balance = m_api->get_balance(m_src_currency.c_str());
   dst_balance = m_api->get_balance(m_dst_currency.c_str());
-  src_price = m_api->get_price(m_symbol.c_str());
-  dst_price = m_api->get_price(m_symbol.c_str());
+  // 現在の価格を取得
+  src_per_dst = m_api->get_price(m_symbol.c_str());
 
   PLOG_INFO.printf("transaction (sell). src: %f, dst: %f", src_balance * src_per_dst, dst_balance);
+  // 売れない、売る必要がない場合は取引機会を無視
   if ((src_balance * src_per_dst) < (dst_balance)) {
     PLOG_WARNING << "ignored transaction (sell).";
     return Result::Success;
@@ -161,7 +170,8 @@ TransactionManager::exec() {
   float server_timestamp;
   float macd_value, signal_value;
 
-  // event loop
+  // イベントループ
+  // TODO: SIGINT 以外で正常に抜けられるようにする
   while (1) {
     server_timestamp = m_api->get_server_unix_time();
     macd_value = m_api->get_macd(
@@ -182,6 +192,7 @@ TransactionManager::exec() {
                           );
     PLOG_INFO.printf("Signal (%02d)           : %f", m_signal_param, signal_value);
 
+    // クライアントと接続済みならパケットを送信
     if (m_packet) {
       PacketData data = {};
       data.macd = macd_value;
@@ -195,7 +206,7 @@ TransactionManager::exec() {
       return;
     }
 
-    // cooldown
+    // ウェイト (過剰にリクエストしない為)
     nanosleep(&t, NULL);
   }
 }

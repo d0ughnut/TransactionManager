@@ -25,6 +25,7 @@ int main()
   result = manager->initialize();
   if (result != Result::Success) goto _FAIL;
 
+  // Blocking
   manager->exec();
 
   PLOG_INFO <<  "Terminated.";

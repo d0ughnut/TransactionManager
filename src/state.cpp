@@ -30,7 +30,7 @@ StateManager::exec(float macd_value, float signal_value) {
 
   StateManager::State next_state = m_cur_state;
 
-  // exec
+  // Do
   switch (m_cur_state) {
     case StateManager::State::IDLE:
       if (should_purchase) {
@@ -87,13 +87,14 @@ StateManager::exec(float macd_value, float signal_value) {
       break;
   }
 
-  // exit
+  // Exit
   Result ret = Result::Success;
   if (m_cur_state != next_state) {
-    // reset
+    // カウンタをリセット
     m_waited_count = 0;
     PLOG_INFO.printf("NextState: %d", static_cast<int>(next_state));
 
+    // 取引をリクエスト
     switch (next_state) {
       case StateManager::State::PURCHASE:
         ret = m_manager->purchase();
