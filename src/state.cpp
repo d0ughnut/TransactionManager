@@ -25,9 +25,9 @@ StateManager::~StateManager()
 }
 
 Result
-StateManager::exec(Signal macd_sig, Signal cci_sig)
+StateManager::exec(TransactionSignal macd_sig, TransactionSignal cci_sig)
 {
-  bool should_purchase = (macd_sig == Signal::PURCHASE);
+  bool should_purchase = (macd_sig == TransactionSignal::PURCHASE);
 
   StateManager::State next_state = m_cur_state;
 

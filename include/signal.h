@@ -1,6 +1,6 @@
 #pragma once
 
-enum class Signal {
+enum class TransactionSignal {
   INVALID,
   PURCHASE,
   SELL

@@ -21,7 +21,7 @@ class StateManager {
     StateManager(ConfigAccessor* config, TransactionManager* manager);
     ~StateManager();
 
-    Result exec(Signal macd_sig, Signal cci_sig);
+    Result exec(TransactionSignal macd_sig, TransactionSignal cci_sig);
   private:
     TransactionManager* m_manager;
     StateManager::State m_cur_state;

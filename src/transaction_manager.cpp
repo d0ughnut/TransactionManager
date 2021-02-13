@@ -165,7 +165,7 @@ TransactionManager::sell()
 #endif
 }
 
-Signal
+TransactionSignal
 TransactionManager::request_macd(Long time, PacketData* data)
 {
   double macd_value, signal_value;
@@ -187,7 +187,7 @@ TransactionManager::request_macd(Long time, PacketData* data)
   );
 
   PLOG_INFO.printf("Macd   (%02d, %02d, close): %f", m_macd_s_param, m_macd_l_param, macd_value);
-  PLOG_INFO.printf("Signal (%02d)           : %f", m_signal_param, signal_value);
+  PLOG_INFO.printf("TransactionSignal (%02d)           : %f", m_signal_param, signal_value);
 
   if (data) {
     data->macd   = macd_value;
@@ -195,16 +195,16 @@ TransactionManager::request_macd(Long time, PacketData* data)
   }
 
   if (macd_value > signal_value) {
-    return Signal::PURCHASE;
+    return TransactionSignal::PURCHASE;
   } else {
-    return Signal::SELL;
+    return TransactionSignal::SELL;
   }
 }
 
-Signal
+TransactionSignal
 TransactionManager::request_cci(Long time, PacketData* sig)
 {
-  return Signal::PURCHASE;
+  return TransactionSignal::PURCHASE;
 }
 
 void
@@ -230,9 +230,9 @@ TransactionManager::exec() {
     );
 
     // do in main th.
-    Signal macd_sig = request_macd(server_timestamp, data);
+    TransactionSignal macd_sig = request_macd(server_timestamp, data);
     // join & get cci
-    Signal cci_sig = cci_th.get();
+    TransactionSignal cci_sig = cci_th.get();
 
     // クライアントと接続済みならパケットを送信
     if (data) {
