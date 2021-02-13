@@ -12,8 +12,8 @@
 #include "result.h"
 
 typedef struct _PacketData {
-  float macd;
-  float signal;
+  double macd;
+  double signal;
 } PacketData;
 
 class PacketSender {
