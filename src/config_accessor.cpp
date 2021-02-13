@@ -27,11 +27,11 @@ ConfigAccessor::load_file()
   }
 
   gboolean ret = g_key_file_load_from_file(
-                     m_file,
-                     ConfigAccessor::API_KEY_FILE_PATH,
-                     G_KEY_FILE_NONE,
-                     NULL
-                 );
+    m_file,
+    ConfigAccessor::API_KEY_FILE_PATH,
+    G_KEY_FILE_NONE,
+    NULL
+  );
 
   if (ret != TRUE) {
     PLOG_ERROR << "failed to load <config.ini>.";
@@ -117,10 +117,10 @@ std::string
 ConfigAccessor::get_string_value(const char* group, const char* key)
 {
   gchar* value = g_key_file_get_string(
-      m_file,
-      group,
-      key,
-      NULL
+    m_file,
+    group,
+    key,
+    NULL
   );
 
   if (!value) {
@@ -135,10 +135,10 @@ int
 ConfigAccessor::get_integer_value(const char* group, const char* key)
 {
   gint value = g_key_file_get_integer(
-      m_file,
-      group,
-      key,
-      NULL
+    m_file,
+    group,
+    key,
+    NULL
   );
 
   if (!value) {
