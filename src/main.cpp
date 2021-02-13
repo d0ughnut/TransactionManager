@@ -1,11 +1,13 @@
-#include <memory>
 #include <plog/Log.h>
 #include <plog/Init.h>
 #include <plog/Formatters/TxtFormatter.h>
 #include <plog/Appenders/ColorConsoleAppender.h>
 
+#include <memory>
+
 #include "result.h"
 #include "transaction_manager.h"
+#include "alias.h"
 
 int main()
 {

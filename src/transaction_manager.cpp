@@ -1,13 +1,12 @@
+#include <plog/Log.h>
+
 #include <iostream>
 #include <memory>
 #include <time.h>
 #include <future>
 #include <thread>
 
-#include <plog/Log.h>
-
 #include "transaction_manager.h"
-
 #include "result.h"
 #include "api_store.h"
 #include "packet_sender.h"
@@ -112,7 +111,7 @@ _FAIL:
 Result
 TransactionManager::purchase()
 {
-  float src_balance, dst_balance;
+  double src_balance, dst_balance;
   double src_per_dst;
   PLOG_INFO << "Should be purchased.";
 #ifndef IGNORE_TRANSACTION
@@ -142,7 +141,7 @@ TransactionManager::purchase()
 Result
 TransactionManager::sell()
 {
-  float src_balance, dst_balance;
+  double src_balance, dst_balance;
   double src_per_dst;
   PLOG_INFO << "Should be sell it.";
 #ifndef IGNORE_TRANSACTION
@@ -167,9 +166,9 @@ TransactionManager::sell()
 }
 
 Signal
-TransactionManager::request_macd(long time, PacketData* data)
+TransactionManager::request_macd(Long time, PacketData* data)
 {
-  float macd_value, signal_value;
+  double macd_value, signal_value;
 
   macd_value = m_api->get_macd(
     m_symbol.c_str(),
@@ -203,7 +202,7 @@ TransactionManager::request_macd(long time, PacketData* data)
 }
 
 Signal
-TransactionManager::request_cci(long time, PacketData* sig)
+TransactionManager::request_cci(Long time, PacketData* sig)
 {
   return Signal::PURCHASE;
 }
@@ -212,7 +211,7 @@ void
 TransactionManager::exec() {
   struct timespec t = {m_api_req_interval_sec, 0};
 
-  float server_timestamp;
+  double server_timestamp;
 
   // イベントループ
   // TODO: SIGINT 以外で正常に抜けられるようにする

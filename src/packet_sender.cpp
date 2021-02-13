@@ -1,6 +1,7 @@
-#include <cstring>
 #include <errno.h>
 #include <plog/Log.h>
+
+#include <cstring>
 
 #include "packet_sender.h"
 

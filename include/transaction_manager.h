@@ -9,8 +9,11 @@
 #include "packet_sender.h"
 #include "state.h"
 #include "signal.h"
+#include "alias.h"
 
 class StateManager;
+
+// typedef int64_t Long;
 
 class TransactionManager
 {
@@ -28,8 +31,8 @@ class TransactionManager
     std::unique_ptr<StateManager> m_state;
     std::unique_ptr<PacketSender> m_packet;
 
-    Signal request_macd(long time, PacketData* data);
-    Signal request_cci(long time, PacketData* data);
+    Signal request_macd(Long time, PacketData* data);
+    Signal request_cci(Long time, PacketData* data);
 
     int m_macd_s_param, m_macd_l_param, m_signal_param;
 

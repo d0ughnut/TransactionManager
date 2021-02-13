@@ -1,5 +1,5 @@
-#include <iostream>
 #include <plog/Log.h>
+#include <iostream>
 
 #include "state.h"
 #include "signal.h"
@@ -25,8 +25,8 @@ StateManager::~StateManager()
 }
 
 Result
-StateManager::exec(Signal macd_sig, Signal cci_sig) {
-
+StateManager::exec(Signal macd_sig, Signal cci_sig)
+{
   bool should_purchase = (macd_sig == Signal::PURCHASE);
 
   StateManager::State next_state = m_cur_state;

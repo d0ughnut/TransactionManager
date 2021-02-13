@@ -1,6 +1,7 @@
-#include <iostream>
-#include <cmath>
 #include <plog/Log.h>
+#include <iostream>
+
+#include <cmath>
 
 #include "utils.h"
 
@@ -22,7 +23,7 @@ Result make_directory(const std::string& path)
   return Result::Success;
 }
 
-}
+}  // namespace FileUtils
 
 namespace MathUtils {
 
@@ -34,4 +35,4 @@ double round_n(double number, int n)
   return number;
 }
 
-}
+}  // namespace MathUtils

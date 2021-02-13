@@ -1,10 +1,10 @@
-#include <iostream>
 #include <plog/Log.h>
+#include <iostream>
 
 #include "config_accessor.h"
 #include "result.h"
 
-const std::string ConfigAccessor::API_KEY_FILE_PATH = "/etc/binance/config.ini";
+const char* ConfigAccessor::API_KEY_FILE_PATH = "/etc/binance/config.ini";
 
 ConfigAccessor::ConfigAccessor()
 {
@@ -28,7 +28,7 @@ ConfigAccessor::load_file()
 
   gboolean ret = g_key_file_load_from_file(
                      m_file,
-                     ConfigAccessor::API_KEY_FILE_PATH.c_str(),
+                     ConfigAccessor::API_KEY_FILE_PATH,
                      G_KEY_FILE_NONE,
                      NULL
                  );

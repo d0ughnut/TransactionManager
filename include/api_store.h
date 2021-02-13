@@ -1,15 +1,19 @@
 #pragma once
 
-#include <memory>
 #include <json/json.h>
-#include <string>
 
-#include "result.h"
-#include "config_accessor.h"
+#include <memory>
+#include <string>
+#include <vector>
 
 #include "binance-cxx-api/binance.h"
 #include "binance-cxx-api/binance_websocket.h"
 #include "binance-cxx-api/binance_logger.h"
+
+
+#include "result.h"
+#include "config_accessor.h"
+#include "alias.h"
 
 using namespace binance;
 
@@ -31,7 +35,7 @@ class ApiStore {
     Result write_api_to_file(const std::string& file_path, const std::string& buffer);
 
   public:
-    ApiStore(ConfigAccessor* config);
+    explicit ApiStore(ConfigAccessor* config);
     ~ApiStore();
 
     Result initialize();
@@ -40,23 +44,21 @@ class ApiStore {
         Json::Value& result,
         const char* symbol,
         const char* interval_day,
-        long open_unix_time = 0,
-        long close_unix_time = 0,
+        Long open_unix_time = 0,
+        Long close_unix_time = 0,
         int limit = 500
     );
 
-    float get_macd_signal(const char* symbol, long server_unix_time, float recent_macd, int s, int l, int range);
-    float get_macd(const char* symbol, long server_unix_time, int s, int l);
-    float get_ema(std::vector<float>& c_pricies, int range);
-    std::vector<float> get_c_pricies_from_klines(Json::Value& result);
+    double get_macd_signal(const char* symbol, Long server_unix_time, double recent_macd, int s, int l, int range);
+    double get_macd(const char* symbol, Long server_unix_time, int s, int l);
+    double get_ema(const std::vector<double>& c_pricies, int range);
+    std::vector<double> get_c_pricies_from_klines(Json::Value& result);
 
-    long get_server_unix_time();
+    Long get_server_unix_time();
 
-    float get_balance(const char* symbol);
+    double get_balance(const char* symbol);
     double get_price(const char* symbol);
-    double get_cci(const char* symbol, int range);
-    Result purchase(const char* symbol, float balance);
-    Result sell(const char* symbol, float balance);
-
-    // void print(Json::Value& json_result);
+    double get_cci(const char* symbol, int range, Long server_unix_time);
+    Result purchase(const char* symbol, double balance);
+    Result sell(const char* symbol, double balance);
 };

@@ -70,7 +70,7 @@ ApiStore::write_api_to_file(const std::string& file_path, const std::string& buf
   return Result::Success;
 }
 
-long
+Long
 ApiStore::get_server_unix_time()
 {
   Json::Value result;
@@ -95,16 +95,16 @@ ApiStore::get_server_unix_time()
   return std::stol(buffer);
 }
 
-float
-ApiStore::get_macd_signal(const char* symbol, long server_unix_time, float recent_macd, int s, int l, int range)
+double
+ApiStore::get_macd_signal(const char* symbol, Long server_unix_time, double recent_macd, int s, int l, int range)
 {
   std::string str_t = std::to_string(server_unix_time);
   str_t = str_t.substr(0, 10);
-  long unix_t = std::stol(str_t);
+  Long unix_t = std::stol(str_t);
 
-  float num = 0.0f;
+  double num = 0.0f;
 
-  std::vector<float> macds;
+  std::vector<double> macds;
   // get_ema() に渡す vector が降順な為、逆から詰める
   for (int i = (range * 2) - 1; i > 0; --i) {
     std::tm *tm = std::localtime(&unix_t);
@@ -112,7 +112,7 @@ ApiStore::get_macd_signal(const char* symbol, long server_unix_time, float recen
     std::time_t t = std::mktime(tm);
 
     // 落としたミリ秒分繰り上げる
-    float m = get_macd(symbol, t * 1000, s, l);
+    double m = get_macd(symbol, t * 1000, s, l);
 
     macds.push_back(m);
   }
@@ -122,15 +122,15 @@ ApiStore::get_macd_signal(const char* symbol, long server_unix_time, float recen
   return get_ema(macds, range);
 }
 
-float
-ApiStore::get_macd(const char* symbol, long server_unix_time, int s_range, int l_range)
+double
+ApiStore::get_macd(const char* symbol, Long server_unix_time, int s_range, int l_range)
 {
   // interval (足間) * th が 24 になるよう設定する
   const int th = 6;
 
-  float s_ema, l_ema;
+  double s_ema, l_ema;
   Json::Value buffer;
-  std::vector<float> c_pricies;
+  std::vector<double> c_pricies;
 
   Result ret;
 
@@ -168,27 +168,27 @@ ApiStore::get_macd(const char* symbol, long server_unix_time, int s_range, int l
   return s_ema - l_ema;
 }
 
-std::vector<float>
+std::vector<double>
 ApiStore::get_c_pricies_from_klines(Json::Value& result)
 {
-  std::vector<float> list;
+  std::vector<double> list;
 
   for (auto i = 0; i < result.size(); ++i) {
     // 終値を取得
-    list.push_back(std::stof(result[i][ResponseTag::Kline::CLOSE].asString()));
+    list.push_back(std::stof(result[i][ResponseIdx::Kline::CLOSE].asString()));
   }
 
   return list;
 }
 
-float
-ApiStore::get_ema(std::vector<float>& c_pricies, int range)
+double
+ApiStore::get_ema(const std::vector<double>& c_pricies, int range)
 {
   // 平滑化定数
-  const float ALPHA = 2.0f / (range + 1);
+  const double ALPHA = 2.0f / (range + 1);
 
   // 1 日目の SMA を算出 (= 1 日目の EMA)
-  float y_ema = 0.0f;
+  double y_ema = 0.0f;
 #ifdef X2_LOGIC
   for (auto i = 0; i < c_pricies.size() / 2; ++i) {
 #else
@@ -198,7 +198,7 @@ ApiStore::get_ema(std::vector<float>& c_pricies, int range)
   }
   y_ema /= range;
 
-  float t_ema = 0.0f;
+  double t_ema = 0.0f;
 #ifdef X2_LOGIC
   for (auto i = c_pricies.size() / 2; i < c_pricies.size(); ++i) {
 #else
@@ -216,8 +216,8 @@ ApiStore::get_kline(
     Json::Value& result,
     const char* symbol,
     const char* interval_day,
-    long open_unix_time,
-    long close_unix_time,
+    Long open_unix_time,
+    Long close_unix_time,
     int limit
 )
 {
@@ -240,11 +240,10 @@ ApiStore::get_kline(
   return Result::Success;
 }
 
-float
+double
 ApiStore::get_balance(const char* symbol)
 {
   Json::Value result;
-  long recv_window = 10000;
 
   int retry = API_CALL_LEFT;
 
@@ -261,7 +260,7 @@ ApiStore::get_balance(const char* symbol)
     }
   }
 
-  float free = -1.0f;
+  double free = -1.0f;
   for (const Json::Value& coin_info : result) {
     if (coin_info["coin"].asString() == symbol) {
       free = std::stof(coin_info["free"].asString());
@@ -272,7 +271,7 @@ ApiStore::get_balance(const char* symbol)
 }
 
 Result
-ApiStore::purchase(const char* symbol, float balance)
+ApiStore::purchase(const char* symbol, double balance)
 {
   Json::Value buffer;
   binanceError_t ret;
@@ -311,7 +310,7 @@ _FAIL:
 }
 
 Result
-ApiStore::sell(const char* symbol, float balance)
+ApiStore::sell(const char* symbol, double balance)
 {
   Json::Value buffer;
   binanceError_t ret;
@@ -360,7 +359,21 @@ ApiStore::get_price(const char* symbol)
 }
 
 double
-ApiStore::get_cci(const char* symbol, int range)
+ApiStore::get_cci(const char* symbol, int range, Long server_unix_time)
 {
+  Result ret;
+  Json::Value buffer;
+  // interval (足間) * th が 24 になるよう設定する
+  const int th = 6;
+#ifdef X2_LOGIC
+  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, range * 2 * th);
+#else
+  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, range * th);
+#endif
+  if (ret != Result::Success) {
+      PLOG_ERROR << "Failed to get ema.";
+      return -1;
+  }
+
   return 0;
 }

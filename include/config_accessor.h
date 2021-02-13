@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <glib.h>
+#include <string>
 
 #include "result.h"
 
@@ -25,10 +25,11 @@ class ConfigAccessor {
     int get_macd_long_param();
     int get_signal_param();
     int get_cci_length();
+
   private:
     std::string get_string_value(const char* group, const char* key);
     int get_integer_value(const char* group, const char* key);
 
-    static const std::string API_KEY_FILE_PATH;
+    static const char* API_KEY_FILE_PATH;
     GKeyFile* m_file;
 };

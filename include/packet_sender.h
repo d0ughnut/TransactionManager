@@ -1,11 +1,12 @@
 #pragma once
 
-#include <string>
-#include <iostream>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+
+#include <string>
+#include <iostream>
 
 #include "config_accessor.h"
 #include "result.h"
@@ -23,7 +24,7 @@ class PacketSender {
     int m_port;
 
   public:
-    PacketSender(ConfigAccessor* config);
+    explicit PacketSender(ConfigAccessor* config);
     ~PacketSender();
 
     Result con();

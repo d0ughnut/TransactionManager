@@ -15,5 +15,5 @@ namespace MathUtils {
   template <class N>
   inline N abs(N num) {
     return (num >= 0) ? num : -num;
-  };
+  }
 }

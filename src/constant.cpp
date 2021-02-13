@@ -1,6 +1,7 @@
 #include "constant.h"
 
-namespace ResponseTag {
+// Json レスポンスの添字番号
+namespace ResponseIdx {
   const int Kline::OPEN                       = 1;
   const int Kline::HIGH                       = 2;
   const int Kline::LOW                        = 3;
@@ -12,4 +13,4 @@ namespace ResponseTag {
   const int Kline::TAKER_BUY_BASE_ASSET_VOL   = 9;
   const int Kline::TAKER_BUY_QUOTE_ASSET_VOL  = 10;
   const int Kline::IGNORE                     = 11;
-}
+}  // namespace ResponseIdx
