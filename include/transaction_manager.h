@@ -8,6 +8,7 @@
 #include "api_store.h"
 #include "packet_sender.h"
 #include "state.h"
+#include "signal.h"
 
 class StateManager;
 
@@ -26,6 +27,9 @@ class TransactionManager
     std::unique_ptr<ApiStore> m_api;
     std::unique_ptr<StateManager> m_state;
     std::unique_ptr<PacketSender> m_packet;
+
+    Signal request_macd(long time, PacketData* data);
+    Signal request_cci(long time, PacketData* data);
 
     int m_macd_s_param, m_macd_l_param, m_signal_param;
 

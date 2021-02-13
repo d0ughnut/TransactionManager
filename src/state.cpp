@@ -2,6 +2,7 @@
 #include <plog/Log.h>
 
 #include "state.h"
+#include "signal.h"
 
 StateManager::StateManager(
   ConfigAccessor* config,
@@ -24,9 +25,9 @@ StateManager::~StateManager()
 }
 
 Result
-StateManager::exec(float macd_value, float signal_value) {
+StateManager::exec(Signal macd_sig, Signal cci_sig) {
 
-  bool should_purchase = macd_value > signal_value;
+  bool should_purchase = (macd_sig == Signal::PURCHASE);
 
   StateManager::State next_state = m_cur_state;
 

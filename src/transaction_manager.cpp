@@ -1,6 +1,9 @@
 #include <iostream>
 #include <memory>
 #include <time.h>
+#include <future>
+#include <thread>
+
 #include <plog/Log.h>
 
 #include "transaction_manager.h"
@@ -163,50 +166,88 @@ TransactionManager::sell()
 #endif
 }
 
+Signal
+TransactionManager::request_macd(long time, PacketData* data)
+{
+  float macd_value, signal_value;
+
+  macd_value = m_api->get_macd(
+    m_symbol.c_str(),
+    time,
+    m_macd_s_param,
+    m_macd_l_param
+  );
+
+  signal_value = m_api->get_macd_signal(
+    m_symbol.c_str(),
+    time,
+    macd_value,
+    m_macd_s_param,
+    m_macd_l_param,
+    m_signal_param
+  );
+
+  PLOG_INFO.printf("Macd   (%02d, %02d, close): %f", m_macd_s_param, m_macd_l_param, macd_value);
+  PLOG_INFO.printf("Signal (%02d)           : %f", m_signal_param, signal_value);
+
+  if (data) {
+    data->macd   = macd_value;
+    data->signal = signal_value;
+  }
+
+  if (macd_value > signal_value) {
+    return Signal::PURCHASE;
+  } else {
+    return Signal::SELL;
+  }
+}
+
+Signal
+TransactionManager::request_cci(long time, PacketData* sig)
+{
+  return Signal::PURCHASE;
+}
+
 void
 TransactionManager::exec() {
   struct timespec t = {m_api_req_interval_sec, 0};
 
   float server_timestamp;
-  float macd_value, signal_value;
 
   // イベントループ
   // TODO: SIGINT 以外で正常に抜けられるようにする
   while (1) {
     server_timestamp = m_api->get_server_unix_time();
-    macd_value = m_api->get_macd(
-                            m_symbol.c_str(),
-                            server_timestamp,
-                            m_macd_s_param,
-                            m_macd_l_param
-                        );
-    PLOG_INFO.printf("Macd   (%02d, %02d, close): %f", m_macd_s_param, m_macd_l_param, macd_value);
 
-    signal_value = m_api->get_macd_signal(
-                              m_symbol.c_str(),
-                              server_timestamp,
-                              macd_value,
-                              m_macd_s_param,
-                              m_macd_l_param,
-                              m_signal_param
-                          );
-    PLOG_INFO.printf("Signal (%02d)           : %f", m_signal_param, signal_value);
-
-    // クライアントと接続済みならパケットを送信
+    PacketData* data = nullptr;
     if (m_packet) {
-      PacketData data = {};
-      data.macd = macd_value;
-      data.signal = signal_value;
-      m_packet->send_packet(&data);
+      data = new PacketData();
     }
 
-    Result ret = m_state->exec(macd_value, signal_value);
+    // do in worker th.
+    auto cci_th = std::async(
+      std::launch::async,
+      [&] { return request_cci(server_timestamp, data); }
+    );
+
+    // do in main th.
+    Signal macd_sig = request_macd(server_timestamp, data);
+    // join & get cci
+    Signal cci_sig = cci_th.get();
+
+    // クライアントと接続済みならパケットを送信
+    if (data) {
+      m_packet->send_packet(data);
+      delete data;
+    }
+
+    Result ret = m_state->exec(macd_sig, cci_sig);
     if (ret != Result::Success) {
       PLOG_ERROR << "Failed to manage state.";
       return;
     }
 
-    // ウェイト (過剰にリクエストしない為)
+    // wait (過剰にリクエストしない為)
     nanosleep(&t, NULL);
   }
 }

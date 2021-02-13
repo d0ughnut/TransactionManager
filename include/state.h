@@ -2,6 +2,7 @@
 
 #include "config_accessor.h"
 #include "transaction_manager.h"
+#include "signal.h"
 
 class TransactionManager;
 
@@ -20,7 +21,7 @@ class StateManager {
     StateManager(ConfigAccessor* config, TransactionManager* manager);
     ~StateManager();
 
-    Result exec(float macd_value, float signal_value);
+    Result exec(Signal macd_sig, Signal cci_sig);
   private:
     TransactionManager* m_manager;
     StateManager::State m_cur_state;
