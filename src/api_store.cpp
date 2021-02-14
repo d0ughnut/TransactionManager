@@ -150,15 +150,6 @@ ApiStore::get_macd(
       server_unix_time,
       s_range * 2 * th
   );
-#else
-  ret = get_kline(
-      buffer,
-      symbol,
-      "4h",
-      0,
-      server_unix_time,
-      s_range * th
-  );
 #endif
   if (ret != Result::Success) {
     PLOG_ERROR << "Failed to get ema.";
@@ -177,15 +168,6 @@ ApiStore::get_macd(
       0,
       server_unix_time,
       l_range * 2 * th
-  );
-#else
-  ret = get_kline(
-      buffer,
-      symbol,
-      "4h",
-      0,
-      server_unix_time,
-      l_range * th
   );
 #endif
   if (ret != Result::Success) {
@@ -225,8 +207,6 @@ ApiStore::get_ema(
   double y_ema = 0.0f;
 #ifdef X2_LOGIC
   for (auto i = 0; i < c_pricies.size() / 2; ++i) {
-#else
-  for (auto i = 0; i < c_pricies.size(); ++i) {
 #endif
     y_ema+= c_pricies[i];
   }
@@ -235,8 +215,6 @@ ApiStore::get_ema(
   double t_ema = 0.0f;
 #ifdef X2_LOGIC
   for (auto i = c_pricies.size() / 2; i < c_pricies.size(); ++i) {
-#else
-  for (auto i = 1; i < c_pricies.size(); ++i) {
 #endif
     t_ema = y_ema + ALPHA * (c_pricies[i] - y_ema);
     y_ema = t_ema;

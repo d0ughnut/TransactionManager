@@ -49,16 +49,15 @@ class ApiStore {
       int limit = 500
   );
 
+  Long get_server_unix_time();
   double get_macd_signal(const char* symbol, Long server_unix_time, double recent_macd, int s, int l, int range);
   double get_macd(const char* symbol, Long server_unix_time, int s, int l);
   double get_ema(const std::vector<double>& c_pricies, int range);
-  std::vector<double> get_c_pricies_from_klines(Json::Value& result);
-
-  Long get_server_unix_time();
-
   double get_balance(const char* symbol);
   double get_price(const char* symbol);
   double get_cci(const char* symbol, int range, Long server_unix_time);
+  std::vector<double> get_c_pricies_from_klines(Json::Value& result);
+
   Result purchase(const char* symbol, double balance);
   Result sell(const char* symbol, double balance);
 };
