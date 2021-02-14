@@ -19,4 +19,5 @@ include(CMakePrintHelpers)
 add_executable(${PROJECT_NAME} ${sources})
 
 target_include_directories(${PROJECT_NAME} PRIVATE ./include)
-target_link_libraries(${PROJECT_NAME} binance-cxx-api ${FIND_PKG_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} binance-cxx-api ${FIND_PKG_LIBRARIES}
+pthread)
