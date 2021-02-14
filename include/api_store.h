@@ -18,47 +18,47 @@
 using namespace binance;
 
 class ApiStore {
-  private:
-    static const int API_CALL_LEFT;
-    static const int RECV_WINDOW;
-    static const std::string API_DIR;
-    static const std::string API_KEY_PATH;
-    static const std::string API_SECRET_PATH;
+ private:
+  static const int API_CALL_LEFT;
+  static const int RECV_WINDOW;
+  static const std::string API_DIR;
+  static const std::string API_KEY_PATH;
+  static const std::string API_SECRET_PATH;
 
-    std::string m_api_key;
-    std::string m_api_secret;
+  std::string m_api_key;
+  std::string m_api_secret;
 
-    Server m_server;
-    Market m_market;
-    Account m_account;
+  Server m_server;
+  Market m_market;
+  Account m_account;
 
-    Result write_api_to_file(const std::string& file_path, const std::string& buffer);
+  Result write_api_to_file(const std::string& file_path, const std::string& buffer);
 
-  public:
-    explicit ApiStore(ConfigAccessor* config);
-    ~ApiStore();
+ public:
+  explicit ApiStore(ConfigAccessor* config);
+  ~ApiStore();
 
-    Result initialize();
+  Result initialize();
 
-    Result get_kline(
-        Json::Value& result,
-        const char* symbol,
-        const char* interval_day,
-        Long open_unix_time = 0,
-        Long close_unix_time = 0,
-        int limit = 500
-    );
+  Result get_kline(
+      Json::Value& result,
+      const char* symbol,
+      const char* interval_day,
+      Long open_unix_time = 0,
+      Long close_unix_time = 0,
+      int limit = 500
+  );
 
-    double get_macd_signal(const char* symbol, Long server_unix_time, double recent_macd, int s, int l, int range);
-    double get_macd(const char* symbol, Long server_unix_time, int s, int l);
-    double get_ema(const std::vector<double>& c_pricies, int range);
-    std::vector<double> get_c_pricies_from_klines(Json::Value& result);
+  double get_macd_signal(const char* symbol, Long server_unix_time, double recent_macd, int s, int l, int range);
+  double get_macd(const char* symbol, Long server_unix_time, int s, int l);
+  double get_ema(const std::vector<double>& c_pricies, int range);
+  std::vector<double> get_c_pricies_from_klines(Json::Value& result);
 
-    Long get_server_unix_time();
+  Long get_server_unix_time();
 
-    double get_balance(const char* symbol);
-    double get_price(const char* symbol);
-    double get_cci(const char* symbol, int range, Long server_unix_time);
-    Result purchase(const char* symbol, double balance);
-    Result sell(const char* symbol, double balance);
+  double get_balance(const char* symbol);
+  double get_price(const char* symbol);
+  double get_cci(const char* symbol, int range, Long server_unix_time);
+  Result purchase(const char* symbol, double balance);
+  Result sell(const char* symbol, double balance);
 };

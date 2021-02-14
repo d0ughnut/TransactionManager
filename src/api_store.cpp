@@ -1,9 +1,9 @@
+#include <json/json.h>
+#include <plog/Log.h>
+
 #include <memory>
 #include <iostream>
-#include <json/json.h>
 #include <ctime>
-#include <typeinfo>
-#include <plog/Log.h>
 #include <fstream>
 
 #include "api_store.h"
@@ -14,26 +14,21 @@ const int ApiStore::API_CALL_LEFT = 5;
 const int ApiStore::RECV_WINDOW = 10000;
 
 const std::string ApiStore::API_DIR         = std::string(getenv("HOME")) + std::string("/.bitrader/");
-const std::string ApiStore::API_KEY_PATH    = API_DIR + std::string("key");
-const std::string ApiStore::API_SECRET_PATH = API_DIR + std::string("secret");
+const std::string ApiStore::API_KEY_PATH    = API_DIR + "key";
+const std::string ApiStore::API_SECRET_PATH = API_DIR + "secret";
 
 #define X2_LOGIC
 
-ApiStore::ApiStore(ConfigAccessor* config) :
-m_api_key(config->get_api_key()),
-m_api_secret(config->get_api_secret()),
-m_market(m_server),
-m_account(m_server)
-{
-}
+ApiStore::ApiStore(ConfigAccessor* config)
+    : m_api_key(config->get_api_key()),
+      m_api_secret(config->get_api_secret()),
+      m_market(m_server),
+      m_account(m_server) {}
 
-ApiStore::~ApiStore()
-{
-}
+ApiStore::~ApiStore() {}
 
 Result
-ApiStore::initialize()
-{
+ApiStore::initialize() {
   Result result;
 
   if ((m_api_key == "") || (m_api_secret == "")) {
@@ -56,8 +51,10 @@ ApiStore::initialize()
 }
 
 Result
-ApiStore::write_api_to_file(const std::string& file_path, const std::string& buffer)
-{
+ApiStore::write_api_to_file(
+    const std::string& file_path,
+    const std::string& buffer
+) {
   std::ofstream ofs(file_path);
   if (!ofs) {
     PLOG_ERROR << "Failed to open file.";
@@ -71,8 +68,7 @@ ApiStore::write_api_to_file(const std::string& file_path, const std::string& buf
 }
 
 Long
-ApiStore::get_server_unix_time()
-{
+ApiStore::get_server_unix_time() {
   Json::Value result;
   int retry = API_CALL_LEFT;
 
@@ -83,7 +79,7 @@ ApiStore::get_server_unix_time()
       break;
     } else {
       --retry;
-      PLOG_WARNING.printf("Failed to request. Try Again (Last: %d)", retry); 
+      PLOG_WARNING.printf("Failed to request. Try Again (Last: %d)", retry);
       if (retry <= 0) {
         PLOG_ERROR << "Failed to get server_timestamp.";
         return -1;
@@ -96,8 +92,14 @@ ApiStore::get_server_unix_time()
 }
 
 double
-ApiStore::get_macd_signal(const char* symbol, Long server_unix_time, double recent_macd, int s, int l, int range)
-{
+ApiStore::get_macd_signal(
+    const char* symbol,
+    Long server_unix_time,
+    double recent_macd,
+    int s,
+    int l,
+    int range
+) {
   std::string str_t = std::to_string(server_unix_time);
   str_t = str_t.substr(0, 10);
   Long unix_t = std::stol(str_t);
@@ -123,8 +125,12 @@ ApiStore::get_macd_signal(const char* symbol, Long server_unix_time, double rece
 }
 
 double
-ApiStore::get_macd(const char* symbol, Long server_unix_time, int s_range, int l_range)
-{
+ApiStore::get_macd(
+    const char* symbol,
+    Long server_unix_time,
+    int s_range,
+    int l_range
+) {
   // interval (足間) * th が 24 になるよう設定する
   const int th = 6;
 
@@ -136,28 +142,55 @@ ApiStore::get_macd(const char* symbol, Long server_unix_time, int s_range, int l
 
   // ローソク足データ取得
 #ifdef X2_LOGIC
-  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, s_range * 2 * th);
+  ret = get_kline(
+      buffer,
+      symbol,
+      "4h",
+      0,
+      server_unix_time,
+      s_range * 2 * th
+  );
 #else
-  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, s_range * th);
+  ret = get_kline(
+      buffer,
+      symbol,
+      "4h",
+      0,
+      server_unix_time,
+      s_range * th
+  );
 #endif
   if (ret != Result::Success) {
-      PLOG_ERROR << "Failed to get ema.";
-      return -1;
+    PLOG_ERROR << "Failed to get ema.";
+    return -1;
   }
 
   c_pricies = get_c_pricies_from_klines(buffer);
   s_ema = get_ema(c_pricies, s_range);
   c_pricies.clear();
   buffer.clear();
-
 #ifdef X2_LOGIC
-  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, l_range * 2 * th);
+  ret = get_kline(
+      buffer,
+      symbol,
+      "4h",
+      0,
+      server_unix_time,
+      l_range * 2 * th
+  );
 #else
-  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, l_range * th);
+  ret = get_kline(
+      buffer,
+      symbol,
+      "4h",
+      0,
+      server_unix_time,
+      l_range * th
+  );
 #endif
   if (ret != Result::Success) {
-      PLOG_ERROR << "Failed to get ema.";
-      return -1;
+    PLOG_ERROR << "Failed to get ema.";
+    return -1;
   }
 
   c_pricies = get_c_pricies_from_klines(buffer);
@@ -169,8 +202,7 @@ ApiStore::get_macd(const char* symbol, Long server_unix_time, int s_range, int l
 }
 
 std::vector<double>
-ApiStore::get_c_pricies_from_klines(Json::Value& result)
-{
+ApiStore::get_c_pricies_from_klines(Json::Value& result) {
   std::vector<double> list;
 
   for (auto i = 0; i < result.size(); ++i) {
@@ -182,8 +214,10 @@ ApiStore::get_c_pricies_from_klines(Json::Value& result)
 }
 
 double
-ApiStore::get_ema(const std::vector<double>& c_pricies, int range)
-{
+ApiStore::get_ema(
+  const std::vector<double>& c_pricies,
+  int range
+) {
   // 平滑化定数
   const double ALPHA = 2.0f / (range + 1);
 
@@ -219,17 +253,24 @@ ApiStore::get_kline(
     Long open_unix_time,
     Long close_unix_time,
     int limit
-)
-{
+) {
   int retry = API_CALL_LEFT;
 
   while (1) {
     result.clear();
-    binanceError_t ret = m_market.getKlines(result, symbol, interval_day, open_unix_time, close_unix_time, limit);
+
+    binanceError_t ret = m_market.getKlines(
+        result, symbol,
+        interval_day,
+        open_unix_time,
+        close_unix_time,
+        limit
+    );
+
     if (ret == binanceSuccess) {
       break;
     } else {
-      PLOG_WARNING.printf("Failed to request. Try Again (Last: %d)", retry); 
+      PLOG_WARNING.printf("Failed to request. Try Again (Last: %d)", retry);
       if (--retry <= 0) {
         PLOG_ERROR << "Failed to get KLine.";
         return Result::Failed;
@@ -241,8 +282,7 @@ ApiStore::get_kline(
 }
 
 double
-ApiStore::get_balance(const char* symbol)
-{
+ApiStore::get_balance(const char* symbol) {
   Json::Value result;
 
   int retry = API_CALL_LEFT;
@@ -271,8 +311,7 @@ ApiStore::get_balance(const char* symbol)
 }
 
 Result
-ApiStore::purchase(const char* symbol, double balance)
-{
+ApiStore::purchase(const char* symbol, double balance) {
   Json::Value buffer;
   binanceError_t ret;
 
@@ -294,7 +333,19 @@ ApiStore::purchase(const char* symbol, double balance)
   retry = API_CALL_LEFT;
 
   while (retry > 0) {
-    ret = m_account.sendOrder(buffer, symbol, "BUY", "MARKET", "", qty, 0, "0", 0, 0, RECV_WINDOW);
+    ret = m_account.sendOrder(
+        buffer,
+        symbol,
+        "BUY",
+        "MARKET",
+        "",
+        qty,
+        0,
+        "0",
+        0,
+        0,
+        RECV_WINDOW
+    );
     if (ret == binanceSuccess) {
       break;
     } else {
@@ -310,8 +361,7 @@ _FAIL:
 }
 
 Result
-ApiStore::sell(const char* symbol, double balance)
-{
+ApiStore::sell(const char* symbol, double balance) {
   Json::Value buffer;
   binanceError_t ret;
 
@@ -325,7 +375,20 @@ ApiStore::sell(const char* symbol, double balance)
   retry = API_CALL_LEFT;
 
   while (retry > 0) {
-    ret = m_account.sendOrder(buffer, symbol, "SELL", "MARKET", "", qty, 0, "0", 0, 0, RECV_WINDOW);
+    ret = m_account.sendOrder(
+        buffer,
+        symbol,
+        "SELL",
+        "MARKET",
+        "",
+        qty,
+        0,
+        "0",
+        0,
+        0,
+        RECV_WINDOW
+    );
+
     if (ret == binanceSuccess) {
       break;
     } else {
@@ -341,8 +404,7 @@ _FAIL:
 }
 
 double
-ApiStore::get_price(const char* symbol)
-{
+ApiStore::get_price(const char* symbol) {
   int retry = API_CALL_LEFT;
 
   double price = 0;
@@ -359,20 +421,37 @@ ApiStore::get_price(const char* symbol)
 }
 
 double
-ApiStore::get_cci(const char* symbol, int range, Long server_unix_time)
-{
+ApiStore::get_cci(
+    const char* symbol,
+    int range,
+    Long server_unix_time
+) {
   Result ret;
   Json::Value buffer;
   // interval (足間) * th が 24 になるよう設定する
   const int th = 6;
 #ifdef X2_LOGIC
-  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, range * 2 * th);
+  ret = get_kline(
+      buffer,
+      symbol,
+      "4h",
+      0,
+      server_unix_time,
+      range * 2 * th
+  );
 #else
-  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, range * th);
+  ret = get_kline(
+      buffer,
+      symbol,
+      "4h",
+      0,
+      server_unix_time,
+      range * th
+  );
 #endif
   if (ret != Result::Success) {
-      PLOG_ERROR << "Failed to get ema.";
-      return -1;
+    PLOG_ERROR << "Failed to get ema.";
+    return -1;
   }
 
   return 0;

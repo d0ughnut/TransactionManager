@@ -9,8 +9,7 @@
 #include "transaction_manager.h"
 #include "alias.h"
 
-int main()
-{
+int main() {
   Result result;
 
   static plog::ColorConsoleAppender<plog::TxtFormatter> console_appender;

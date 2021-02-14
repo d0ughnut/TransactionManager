@@ -17,17 +17,17 @@ typedef struct _PacketData {
 } PacketData;
 
 class PacketSender {
-  private:
-    int m_sockfd;
+ private:
+  int m_sockfd;
 
-    std::string m_addr;
-    int m_port;
+  std::string m_addr;
+  int m_port;
 
-  public:
-    explicit PacketSender(ConfigAccessor* config);
-    ~PacketSender();
+ public:
+  explicit PacketSender(ConfigAccessor* config);
+  ~PacketSender();
 
-    Result con();
-    Result send_packet(PacketData *data);
-    void discon();
+  Result con();
+  Result send_packet(PacketData *data);
+  void discon();
 };

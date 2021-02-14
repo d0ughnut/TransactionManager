@@ -5,20 +5,16 @@
 
 #include "packet_sender.h"
 
-PacketSender::PacketSender(ConfigAccessor* config) :
-m_addr(config->get_client_addr()),
-m_port(config->get_client_port())
-{
-}
+PacketSender::PacketSender(ConfigAccessor* config)
+    : m_addr(config->get_client_addr()),
+      m_port(config->get_client_port()) {}
 
-PacketSender::~PacketSender()
-{
+PacketSender::~PacketSender() {
   discon();
 }
 
 Result
-PacketSender::con()
-{
+PacketSender::con() {
   if ((m_addr == "") || (m_port < 0)) {
     PLOG_WARNING << "Client info is not set.";
     return Result::Failed;
@@ -38,7 +34,12 @@ PacketSender::con()
   addr.sin_port = htons(m_port);
   addr.sin_addr.s_addr = inet_addr(m_addr.c_str());
 
-  int ret = connect(m_sockfd, (struct sockaddr *) &addr, sizeof(struct sockaddr_in));
+  int ret = connect(
+      m_sockfd,
+      (struct sockaddr *) &addr,
+      sizeof(struct sockaddr_in)
+  );
+
   if (ret < 0) {
     PLOG_ERROR.printf("failed to connect: %s", strerror(errno));
     return Result::Failed;
@@ -48,15 +49,13 @@ PacketSender::con()
 }
 
 Result
-PacketSender::send_packet(PacketData* data)
-{
+PacketSender::send_packet(PacketData* data) {
   send(m_sockfd, data, sizeof(PacketData), 0);
   return Result::Success;
 }
 
 void
-PacketSender::discon()
-{
+PacketSender::discon() {
   if (m_sockfd > 0) {
     close(m_sockfd);
   }

@@ -16,17 +16,12 @@
 ///// DEBUG_FLG
 // #define IGNORE_TRANSACTION
 
-TransactionManager::TransactionManager()
-{
-}
+TransactionManager::TransactionManager() {}
 
-TransactionManager::~TransactionManager()
-{
-}
+TransactionManager::~TransactionManager() {}
 
 Result
-TransactionManager::initialize()
-{
+TransactionManager::initialize() {
   Result result;
   // config 読込
   m_config = std::make_unique<ConfigAccessor>();
@@ -56,8 +51,7 @@ _FAIL:
 }
 
 Result
-TransactionManager::load_param_from_config()
-{
+TransactionManager::load_param_from_config() {
   Result result;
   result = m_config->load_file();
   if (result != Result::Success) goto _FAIL;
@@ -87,8 +81,7 @@ _FAIL:
 }
 
 Result
-TransactionManager::connect_to_client()
-{
+TransactionManager::connect_to_client() {
   Result result;
 
   if (m_packet) {
@@ -109,8 +102,7 @@ _FAIL:
 }
 
 Result
-TransactionManager::purchase()
-{
+TransactionManager::purchase() {
   double src_balance, dst_balance;
   double src_per_dst;
   PLOG_INFO << "Should be purchased.";
@@ -139,8 +131,7 @@ TransactionManager::purchase()
 }
 
 Result
-TransactionManager::sell()
-{
+TransactionManager::sell() {
   double src_balance, dst_balance;
   double src_per_dst;
   PLOG_INFO << "Should be sell it.";
@@ -166,28 +157,34 @@ TransactionManager::sell()
 }
 
 TransactionSignal
-TransactionManager::request_macd(Long time, PacketData* data)
-{
+TransactionManager::request_macd(Long time, PacketData* data) {
   double macd_value, signal_value;
 
   macd_value = m_api->get_macd(
-    m_symbol.c_str(),
-    time,
-    m_macd_s_param,
-    m_macd_l_param
+      m_symbol.c_str(),
+      time,
+      m_macd_s_param,
+      m_macd_l_param
   );
 
   signal_value = m_api->get_macd_signal(
-    m_symbol.c_str(),
-    time,
-    macd_value,
-    m_macd_s_param,
-    m_macd_l_param,
-    m_signal_param
+      m_symbol.c_str(),
+      time,
+      macd_value,
+      m_macd_s_param,
+      m_macd_l_param,
+      m_signal_param
   );
 
-  PLOG_INFO.printf("Macd   (%02d, %02d, close): %f", m_macd_s_param, m_macd_l_param, macd_value);
-  PLOG_INFO.printf("TransactionSignal (%02d)           : %f", m_signal_param, signal_value);
+  PLOG_INFO.printf("Macd   (%02d, %02d, close): %f",
+      m_macd_s_param,
+      m_macd_l_param,
+      macd_value
+  );
+  PLOG_INFO.printf("TransactionSignal (%02d)           : %f",
+      m_signal_param,
+      signal_value
+  );
 
   if (data) {
     data->macd   = macd_value;
@@ -202,8 +199,7 @@ TransactionManager::request_macd(Long time, PacketData* data)
 }
 
 TransactionSignal
-TransactionManager::request_cci(Long time, PacketData* sig)
-{
+TransactionManager::request_cci(Long time, PacketData* sig) {
   return TransactionSignal::PURCHASE;
 }
 

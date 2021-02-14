@@ -5,14 +5,12 @@
 #include "signal.h"
 
 StateManager::StateManager(
-  ConfigAccessor* config,
-  TransactionManager* manager
-) :
-m_manager(manager),
-m_cur_state(StateManager::State::IDLE),
-m_wait_limit(config->get_transaction_wait_count()),
-m_waited_count(0)
-{
+    ConfigAccessor* config,
+    TransactionManager* manager
+) : m_manager(manager),
+    m_cur_state(StateManager::State::IDLE),
+    m_wait_limit(config->get_transaction_wait_count()),
+    m_waited_count(0) {
   if (m_wait_limit < 0) {
     PLOG_WARNING << "Invalid param (wait_count), so use default val (5).";
     m_wait_limit = 5;
@@ -20,13 +18,11 @@ m_waited_count(0)
   PLOG_INFO.printf("Transaction wait: %d", m_wait_limit);
 }
 
-StateManager::~StateManager()
-{
+StateManager::~StateManager() {
 }
 
 Result
-StateManager::exec(TransactionSignal macd_sig, TransactionSignal cci_sig)
-{
+StateManager::exec(TransactionSignal macd_sig, TransactionSignal cci_sig) {
   bool should_purchase = (macd_sig == TransactionSignal::PURCHASE);
 
   StateManager::State next_state = m_cur_state;

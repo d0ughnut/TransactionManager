@@ -7,25 +7,25 @@
 class TransactionManager;
 
 class StateManager {
-  public:
-    enum class State {
-      PURCHASED = -3,
-      PURCHASE  = -2,
-      READY_P   = -1,
-      IDLE      = 0,
-      READY_S   = 1,
-      SELL      = 2,
-      SOLD      = 3
-    };
+ public:
+  enum class State {
+    PURCHASED = -3,
+    PURCHASE  = -2,
+    READY_P   = -1,
+    IDLE      = 0,
+    READY_S   = 1,
+    SELL      = 2,
+    SOLD      = 3
+  };
 
-    StateManager(ConfigAccessor* config, TransactionManager* manager);
-    ~StateManager();
+  StateManager(ConfigAccessor* config, TransactionManager* manager);
+  ~StateManager();
 
-    Result exec(TransactionSignal macd_sig, TransactionSignal cci_sig);
-  private:
-    TransactionManager* m_manager;
-    StateManager::State m_cur_state;
+  Result exec(TransactionSignal macd_sig, TransactionSignal cci_sig);
+ private:
+  TransactionManager* m_manager;
+  StateManager::State m_cur_state;
 
-    int m_wait_limit;
-    int m_waited_count;
+  int m_wait_limit;
+  int m_waited_count;
 };
