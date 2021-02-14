@@ -403,25 +403,18 @@ ApiStore::get_cci(
   Json::Value buffer;
   // interval (足間) * th が 24 になるよう設定する
   const int th = 6;
+  ret = get_kline(
+      buffer,
+      symbol,
+      "4h",
+      0,
+      server_unix_time,
 #ifdef X2_LOGIC
-  ret = get_kline(
-      buffer,
-      symbol,
-      "4h",
-      0,
-      server_unix_time,
       range * 2 * th
-  );
 #else
-  ret = get_kline(
-      buffer,
-      symbol,
-      "4h",
-      0,
-      server_unix_time,
       range * th
-  );
 #endif
+  );
   if (ret != Result::Success) {
     PLOG_ERROR << "Failed to get ema.";
     return -1;
