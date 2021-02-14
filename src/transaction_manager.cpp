@@ -214,7 +214,6 @@ TransactionManager::request_macd(Long time, PacketData* data) {
 
 TransactionSignal
 TransactionManager::request_cci(Long time, PacketData* sig) {
-
   double cci_value = m_api->get_cci(
       m_symbol.c_str(),
       m_cci_len,

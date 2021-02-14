@@ -451,9 +451,6 @@ ApiStore::get_cci(
 
   std::vector<double> tp_list = get_tp(buffer);
 
-  std::cout << buffer[buffer.size() - 1][ResponseIdx::Kline::CLOSE_TIME] << std::endl;
-
-  std::cout << "buflen: " << tp_list.size() << std::endl;
   // tp
   tp = tp_list[tp_list.size() - 1];
 
