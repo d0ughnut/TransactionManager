@@ -1,8 +1,8 @@
+#include <time.h>
 #include <plog/Log.h>
 
 #include <iostream>
 #include <memory>
-#include <time.h>
 #include <future>
 #include <thread>
 
@@ -14,7 +14,7 @@
 #include "config_accessor.h"
 
 ///// DEBUG_FLG
-// #define IGNORE_TRANSACTION
+#define IGNORE_TRANSACTION
 
 TransactionManager::TransactionManager() {}
 
@@ -26,14 +26,23 @@ TransactionManager::initialize() {
   // config 読込
   m_config = std::make_unique<ConfigAccessor>();
   result = load_param_from_config();
-  if (result != Result::Success) goto _FAIL;
+  if (result != Result::Success) {
+    PLOG_ERROR << "failed to build config.";
+    goto _FAIL;
+  }
 
   // api wrappeer 初期化
   m_api = std::make_unique<ApiStore>(m_config.get());
-  if (!m_api) goto _FAIL;
+  if (!m_api) {
+    PLOG_ERROR << "failed to build api store.";
+    goto _FAIL;
+  }
 
   result = m_api->initialize();
-  if (result != Result::Success) goto _FAIL;
+  if (result != Result::Success) {
+    PLOG_ERROR << "failed to init api store.";
+    goto _FAIL;
+  }
 
   // 状態管理
   m_state = std::make_unique<StateManager>(m_config.get(), this);
@@ -64,7 +73,12 @@ TransactionManager::load_param_from_config() {
   m_macd_s_param = m_config->get_macd_short_param();
   m_macd_l_param = m_config->get_macd_long_param();
   m_signal_param = m_config->get_signal_param();
-  if ((m_macd_s_param < 0) || (m_macd_l_param < 0) || (m_signal_param < 0)) {
+  if ((m_macd_s_param <= 0) || (m_macd_l_param <= 0) || (m_signal_param <= 0)) {
+    goto _FAIL;
+  }
+
+  m_cci_len = m_config->get_cci_length();
+  if (m_cci_len <= 0) {
     goto _FAIL;
   }
 
@@ -181,7 +195,7 @@ TransactionManager::request_macd(Long time, PacketData* data) {
       m_macd_l_param,
       macd_value
   );
-  PLOG_INFO.printf("TransactionSignal (%02d)           : %f",
+  PLOG_INFO.printf("Signal (%02d)           : %f",
       m_signal_param,
       signal_value
   );
@@ -200,6 +214,18 @@ TransactionManager::request_macd(Long time, PacketData* data) {
 
 TransactionSignal
 TransactionManager::request_cci(Long time, PacketData* sig) {
+
+  double cci_value = m_api->get_cci(
+      m_symbol.c_str(),
+      m_cci_len,
+      time
+  );
+
+  PLOG_INFO.printf(" Cci    (%02d)           : %f",
+      m_cci_len,
+      cci_value
+  );
+
   return TransactionSignal::PURCHASE;
 }
 
@@ -236,11 +262,13 @@ TransactionManager::exec() {
       delete data;
     }
 
+#ifndef IGNORE_TRANSACTION
     Result ret = m_state->exec(macd_sig, cci_sig);
     if (ret != Result::Success) {
       PLOG_ERROR << "Failed to manage state.";
       return;
     }
+#endif
 
     // wait (過剰にリクエストしない為)
     nanosleep(&t, NULL);

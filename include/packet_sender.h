@@ -10,11 +10,7 @@
 
 #include "config_accessor.h"
 #include "result.h"
-
-typedef struct _PacketData {
-  double macd;
-  double signal;
-} PacketData;
+#include "data.h"
 
 class PacketSender {
  private:

@@ -14,6 +14,7 @@
 #include "result.h"
 #include "config_accessor.h"
 #include "alias.h"
+#include "data.h"
 
 using namespace binance;
 
@@ -56,7 +57,9 @@ class ApiStore {
   double get_balance(const char* symbol);
   double get_price(const char* symbol);
   double get_cci(const char* symbol, int range, Long server_unix_time);
-  std::vector<double> get_c_pricies_from_klines(Json::Value& result);
+  std::vector<double> get_c_pricies_from_klines(Json::Value& buffer);
+  std::vector<TradeData> get_trade_data_from_klines(Json::Value& buffer);
+  std::vector<double> get_tp(Json::Value& buffer);
 
   Result purchase(const char* symbol, double balance);
   Result sell(const char* symbol, double balance);

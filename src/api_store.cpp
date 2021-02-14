@@ -17,8 +17,6 @@ const std::string ApiStore::API_DIR         = std::string(getenv("HOME")) + std:
 const std::string ApiStore::API_KEY_PATH    = API_DIR + "key";
 const std::string ApiStore::API_SECRET_PATH = API_DIR + "secret";
 
-#define X2_LOGIC
-
 ApiStore::ApiStore(ConfigAccessor* config)
     : m_api_key(config->get_api_key()),
       m_api_secret(config->get_api_secret()),
@@ -183,15 +181,46 @@ ApiStore::get_macd(
 }
 
 std::vector<double>
-ApiStore::get_c_pricies_from_klines(Json::Value& result) {
+ApiStore::get_c_pricies_from_klines(Json::Value& buffer) {
   std::vector<double> list;
 
-  for (auto i = 0; i < result.size(); ++i) {
+  for (auto i = 0; i < buffer.size(); ++i) {
     // 終値を取得
-    list.push_back(std::stof(result[i][ResponseIdx::Kline::CLOSE].asString()));
+    list.push_back(std::stof(buffer[i][ResponseIdx::Kline::CLOSE].asString()));
   }
 
   return list;
+}
+
+std::vector<TradeData>
+ApiStore::get_trade_data_from_klines(Json::Value& buffer) {
+  std::vector<TradeData> list;
+
+  for (auto i = 0; i < buffer.size(); ++i) {
+    double h, l, c;
+
+    h = std::stof(buffer[i][ResponseIdx::Kline::HIGH].asString());
+    l = std::stof(buffer[i][ResponseIdx::Kline::LOW].asString());
+    c = std::stof(buffer[i][ResponseIdx::Kline::CLOSE].asString());
+
+    TradeData td = {h, l, c};
+    list.push_back(td);
+  }
+
+  return list;
+}
+
+std::vector<double>
+ApiStore::get_tp(Json::Value& buffer) {
+  std::vector<double> tp_list;
+  std::vector<TradeData> data = get_trade_data_from_klines(buffer);
+
+  for (auto i = 0; i < data.size(); ++i) {
+    double tp = (data[i].h_price + data[i].l_price + data[i].c_price) / 3;
+    tp_list.push_back(tp);
+  }
+
+  return tp_list;
 }
 
 double
@@ -401,24 +430,49 @@ ApiStore::get_cci(
 ) {
   Result ret;
   Json::Value buffer;
-  // interval (足間) * th が 24 になるよう設定する
-  const int th = 6;
+
   ret = get_kline(
       buffer,
       symbol,
       "4h",
       0,
       server_unix_time,
-#ifdef X2_LOGIC
-      range * 2 * th
-#else
-      range * th
-#endif
+      range
   );
+
   if (ret != Result::Success) {
-    PLOG_ERROR << "Failed to get ema.";
     return -1;
   }
 
-  return 0;
+  // tp: (高値 + 安値 + 終値) / 3
+  // ma: (tp の n 本 SMA)
+  // md: 過去 N 本分の |tp - ma| の平均
+  double tp, ma, md;
+
+  std::vector<double> tp_list = get_tp(buffer);
+
+  std::cout << buffer[buffer.size() - 1][ResponseIdx::Kline::CLOSE_TIME] << std::endl;
+
+  std::cout << "buflen: " << tp_list.size() << std::endl;
+  // tp
+  tp = tp_list[tp_list.size() - 1];
+
+  // ma
+  ma = 0;
+  for (int i = 0; i < tp_list.size(); ++i) {
+    ma += tp_list[i];
+  }
+  ma /= tp_list.size();
+
+  // md
+  md = 0;
+  for (int i = 0; i < tp_list.size(); ++i) {
+    md += MathUtils::abs(ma - tp_list[i]);
+  }
+  md /= tp_list.size();
+
+  // cci
+  double cci = (tp - ma) / (0.015 * md);
+
+  return cci;
 }

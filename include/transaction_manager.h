@@ -35,6 +35,7 @@ class TransactionManager {
   TransactionSignal request_cci(Long time, PacketData* data);
 
   int m_macd_s_param, m_macd_l_param, m_signal_param;
+  int m_cci_len;
 
   std::string m_src_currency, m_dst_currency;
   std::string m_symbol;
