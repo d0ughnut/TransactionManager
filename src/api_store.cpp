@@ -141,7 +141,6 @@ ApiStore::get_macd(
   Result ret;
 
   // ローソク足データ取得
-#ifdef X2_LOGIC
   ret = get_kline(
       buffer,
       symbol,
@@ -150,7 +149,7 @@ ApiStore::get_macd(
       server_unix_time,
       s_range * 2 * th
   );
-#endif
+
   if (ret != Result::Success) {
     PLOG_ERROR << "Failed to get ema.";
     return -1;
@@ -160,7 +159,7 @@ ApiStore::get_macd(
   s_ema = get_ema(c_pricies, s_range);
   c_pricies.clear();
   buffer.clear();
-#ifdef X2_LOGIC
+
   ret = get_kline(
       buffer,
       symbol,
@@ -169,7 +168,7 @@ ApiStore::get_macd(
       server_unix_time,
       l_range * 2 * th
   );
-#endif
+
   if (ret != Result::Success) {
     PLOG_ERROR << "Failed to get ema.";
     return -1;
@@ -205,17 +204,13 @@ ApiStore::get_ema(
 
   // 1 日目の SMA を算出 (= 1 日目の EMA)
   double y_ema = 0.0f;
-#ifdef X2_LOGIC
   for (auto i = 0; i < c_pricies.size() / 2; ++i) {
-#endif
     y_ema+= c_pricies[i];
   }
   y_ema /= range;
 
   double t_ema = 0.0f;
-#ifdef X2_LOGIC
   for (auto i = c_pricies.size() / 2; i < c_pricies.size(); ++i) {
-#endif
     t_ema = y_ema + ALPHA * (c_pricies[i] - y_ema);
     y_ema = t_ema;
   }
