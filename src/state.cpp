@@ -27,6 +27,20 @@ StateManager::exec(TransactionSignal macd_sig, TransactionSignal cci_sig) {
 
   StateManager::State next_state = m_cur_state;
 
+  // 待機不要な場合 (cci がシグナルを出した時点で既に macd が交差している場合)
+  // 即時注文をリクエストする
+  if (cci_sig == macd_sig) {
+    switch (cci_sig) {
+      case TransactionSignal::PURCHASE:
+        next_state = StateManager::State::PURCHASE;
+        break;
+      case TransactionSignal::SELL:
+        next_state = StateManager::State::SELL;
+        break;
+    }
+    goto _SKIP;
+  }
+
   // Do
   switch (m_cur_state) {
     case StateManager::State::IDLE:
@@ -44,7 +58,7 @@ StateManager::exec(TransactionSignal macd_sig, TransactionSignal cci_sig) {
       break;
     case StateManager::State::PURCHASE:
     case StateManager::State::SELL:
-      // State: PURCASE, SELL
+      // State: PURCHASE, SELL
       //   注文後に一度だけ通る
       //   動きは IDLE と同じでイベントが無ければ IDLE に遷移
       switch (cci_sig) {
@@ -89,7 +103,7 @@ StateManager::exec(TransactionSignal macd_sig, TransactionSignal cci_sig) {
       //   macd が売りシグナルを出すまで待機する
       //   待機中に cci のシグナルが反転したら READY_P へ遷移
       if (cci_sig == TransactionSignal::PURCHASE) {
-        // cci が売りシグナルを出した場合は即時売り準備状態に遷移
+        // cci が買いシグナルを出した場合は即時買い準備状態に遷移
         next_state = StateManager::State::READY_P;
         break;
       }
@@ -97,7 +111,7 @@ StateManager::exec(TransactionSignal macd_sig, TransactionSignal cci_sig) {
       switch (macd_sig) {
         case TransactionSignal::SELL:
           if (++m_waited_count >= m_wait_limit) {
-            next_state = StateManager::State::PURCHASE;
+            next_state = StateManager::State::SELL;
           }
           break;
         case TransactionSignal::PURCHASE:
@@ -108,6 +122,8 @@ StateManager::exec(TransactionSignal macd_sig, TransactionSignal cci_sig) {
 
       break;
   }
+
+_SKIP:
 
   // Exit
   Result ret = Result::Success;
