@@ -99,14 +99,14 @@ TransactionManager::connect_to_client() {
   Result result;
 
   if (m_packet) {
-      PLOG_INFO.printf("Connecting...");
-      result = m_packet->con();
-      if (result != Result::Success) {
-        PLOG_WARNING << "Connection canceled.";
-        m_packet = nullptr;
-        goto _FAIL;
-      }
-      PLOG_INFO.printf("Connected to client.");
+    PLOG_INFO.printf("Connecting...");
+    result = m_packet->con();
+    if (result != Result::Success) {
+      PLOG_WARNING << "Connection canceled.";
+      m_packet = nullptr;
+      goto _FAIL;
+    }
+    PLOG_INFO.printf("Connected to client.");
   }
 
   return Result::Success;
@@ -214,7 +214,15 @@ TransactionManager::request_macd(Long time, PacketData* data) {
 
 TransactionSignal
 TransactionManager::request_cci(Long time, PacketData* sig) {
-  double cci_value = m_api->get_cci(
+
+  // TODO: 閾値 (変更可能にする)
+  const int high_th = 100;
+  const int low_th  = -100;
+
+  // 前回リクエスト時の値
+  static double prev_cci = 0;
+
+  double cur_cci = m_api->get_cci(
       m_symbol.c_str(),
       m_cci_len,
       time
@@ -222,10 +230,26 @@ TransactionManager::request_cci(Long time, PacketData* sig) {
 
   PLOG_INFO.printf(" Cci    (%02d)           : %f",
       m_cci_len,
-      cci_value
+      cur_cci
   );
 
-  return TransactionSignal::PURCHASE;
+  TransactionSignal signal;
+  if ((prev_cci > high_th) && (cur_cci <= high_th)) {
+    // 前回上閾値以上、今回上閾値以下の場合 (= 売りシグナル)
+    PLOG_INFO << "cci signal (sell)";
+    signal = TransactionSignal::SELL;
+  } else if ((prev_cci < low_th) && (cur_cci >= low_th)) {
+    // 前回下閾値以下、今回下閾値以上の場合 (= 買いシグナル)
+    PLOG_INFO << "cci signal (purchase)";
+    signal = TransactionSignal::PURCHASE;
+  } else {
+    // シグナル平常
+    signal = TransactionSignal::IDLE;
+  }
+
+  prev_cci = cur_cci;
+
+  return signal;
 }
 
 void
@@ -246,8 +270,8 @@ TransactionManager::exec() {
 
     // do in worker th.
     auto cci_th = std::async(
-      std::launch::async,
-      [&] { return request_cci(server_timestamp, data); }
+        std::launch::async,
+        [&] { return request_cci(server_timestamp, data); }
     );
 
     // do in main th.
@@ -261,13 +285,11 @@ TransactionManager::exec() {
       delete data;
     }
 
-#ifndef IGNORE_TRANSACTION
     Result ret = m_state->exec(macd_sig, cci_sig);
     if (ret != Result::Success) {
       PLOG_ERROR << "Failed to manage state.";
       return;
     }
-#endif
 
     // wait (過剰にリクエストしない為)
     nanosleep(&t, NULL);

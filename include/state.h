@@ -9,13 +9,11 @@ class TransactionManager;
 class StateManager {
  public:
   enum class State {
-    PURCHASED = -3,
     PURCHASE  = -2,
     READY_P   = -1,
     IDLE      = 0,
     READY_S   = 1,
     SELL      = 2,
-    SOLD      = 3
   };
 
   StateManager(ConfigAccessor* config, TransactionManager* manager);

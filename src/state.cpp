@@ -30,57 +30,82 @@ StateManager::exec(TransactionSignal macd_sig, TransactionSignal cci_sig) {
   // Do
   switch (m_cur_state) {
     case StateManager::State::IDLE:
-      if (should_purchase) {
-        next_state = StateManager::State::READY_P;
-      } else {
-        next_state = StateManager::State::READY_S;
+      // State: IDLE
+      //   cci のみ待受 (macd は無視)
+      //   cci に売買シグナルが出ている場合は準備状態に遷移
+      switch (cci_sig) {
+        case TransactionSignal::PURCHASE:
+          next_state = StateManager::State::READY_P;
+          break;
+        case TransactionSignal::SELL:
+          next_state = StateManager::State::READY_S;
+          break;
       }
       break;
     case StateManager::State::PURCHASE:
-      if (should_purchase) {
-        next_state = StateManager::State::PURCHASED;
-      } else {
-        next_state = StateManager::State::READY_P;
-      }
-      break;
     case StateManager::State::SELL:
-      if (should_purchase) {
-        next_state = StateManager::State::READY_S;
-      } else {
-        next_state = StateManager::State::SOLD;
-      }
-      break;
-    case StateManager::State::PURCHASED:
-      if (should_purchase) {
-        next_state = StateManager::State::PURCHASED;
-      } else {
-        next_state = StateManager::State::READY_S;
-      }
-      break;
-    case StateManager::State::SOLD:
-      if (should_purchase) {
-        next_state = StateManager::State::READY_P;
-      } else {
-        next_state = StateManager::State::SOLD;
+      // State: PURCASE, SELL
+      //   注文後に一度だけ通る
+      //   動きは IDLE と同じでイベントが無ければ IDLE に遷移
+      switch (cci_sig) {
+        case TransactionSignal::PURCHASE:
+          next_state = StateManager::State::READY_P;
+          break;
+        case TransactionSignal::SELL:
+          next_state = StateManager::State::READY_S;
+          break;
+        default:
+          next_state = StateManager::State::IDLE;
+          break;
       }
       break;
     case StateManager::State::READY_P:
-      if (should_purchase) {
-        if (++m_waited_count >= m_wait_limit) {
-          next_state = StateManager::State::PURCHASE;
-        }
-      } else {
+      // State: READY_P
+      //   買い注文の待機状態
+      //   macd が買いシグナルを出すまで待機する
+      //   待機中に cci のシグナルが反転したら READY_S へ遷移
+      if (cci_sig == TransactionSignal::SELL) {
+        // cci が売りシグナルを出した場合は即時売り準備状態に遷移
         next_state = StateManager::State::READY_S;
+        break;
       }
+
+      switch (macd_sig) {
+        case TransactionSignal::PURCHASE:
+          if (++m_waited_count >= m_wait_limit) {
+            next_state = StateManager::State::PURCHASE;
+          }
+          break;
+        case TransactionSignal::SELL:
+          // カウンタをリセット
+          m_waited_count = 0;
+          break;
+      }
+
       break;
     case StateManager::State::READY_S:
-      if (should_purchase) {
+      // State: READY_S
+      //   売り注文の待機状態
+      //   macd が売りシグナルを出すまで待機する
+      //   待機中に cci のシグナルが反転したら READY_P へ遷移
+      if (cci_sig == TransactionSignal::PURCHASE) {
+        // cci が売りシグナルを出した場合は即時売り準備状態に遷移
         next_state = StateManager::State::READY_P;
-      } else {
-        if (++m_waited_count >= m_wait_limit) {
-          next_state = StateManager::State::SELL;
-        }
+        break;
       }
+
+      switch (macd_sig) {
+        case TransactionSignal::SELL:
+          if (++m_waited_count >= m_wait_limit) {
+            next_state = StateManager::State::PURCHASE;
+          }
+          break;
+        case TransactionSignal::PURCHASE:
+          // カウンタをリセット
+          m_waited_count = 0;
+          break;
+      }
+
       break;
   }
 
