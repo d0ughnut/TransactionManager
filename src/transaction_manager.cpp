@@ -219,8 +219,8 @@ TransactionManager::request_cci(Long time, PacketData* sig) {
   // TODO: 閾値 (変更可能にする)
   const int high_th = 100;
   const int low_th  = -100;
-  const int d_high_th = 200;
-  const int d_low_th  = -200;
+  const int d_high_th = 250;
+  const int d_low_th  = -250;
 
   // 前回リクエスト時の値
   static double prev_cci = 0;

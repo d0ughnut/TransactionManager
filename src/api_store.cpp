@@ -327,8 +327,8 @@ ApiStore::purchase(const char* symbol, double balance) {
     return Result::Failed;
   }
 
-  // 0.9 は確実に買う為の保険
-  qty = (balance / price) * 0.90;
+  // 0.95 は確実に買う為の保険
+  qty = (balance / price) * 0.95;
   qty = MathUtils::round_n(qty, 5);
 
   PLOG_INFO.printf("qty: %f", qty);
