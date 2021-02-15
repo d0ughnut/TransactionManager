@@ -1,38 +1,32 @@
+#include <json/json.h>
+#include <plog/Log.h>
+
 #include <memory>
 #include <iostream>
-#include <json/json.h>
 #include <ctime>
-#include <typeinfo>
-#include <plog/Log.h>
 #include <fstream>
 
 #include "api_store.h"
+#include "constant.h"
 #include "utils.h"
 
 const int ApiStore::API_CALL_LEFT = 5;
 const int ApiStore::RECV_WINDOW = 10000;
 
 const std::string ApiStore::API_DIR         = std::string(getenv("HOME")) + std::string("/.bitrader/");
-const std::string ApiStore::API_KEY_PATH    = API_DIR + std::string("key");
-const std::string ApiStore::API_SECRET_PATH = API_DIR + std::string("secret");
+const std::string ApiStore::API_KEY_PATH    = API_DIR + "key";
+const std::string ApiStore::API_SECRET_PATH = API_DIR + "secret";
 
-#define X2_LOGIC
+ApiStore::ApiStore(ConfigAccessor* config)
+    : m_api_key(config->get_api_key()),
+      m_api_secret(config->get_api_secret()),
+      m_market(m_server),
+      m_account(m_server) {}
 
-ApiStore::ApiStore(ConfigAccessor* config) :
-m_api_key(config->get_api_key()),
-m_api_secret(config->get_api_secret()),
-m_market(m_server),
-m_account(m_server)
-{
-}
-
-ApiStore::~ApiStore()
-{
-}
+ApiStore::~ApiStore() {}
 
 Result
-ApiStore::initialize()
-{
+ApiStore::initialize() {
   Result result;
 
   if ((m_api_key == "") || (m_api_secret == "")) {
@@ -55,9 +49,12 @@ ApiStore::initialize()
 }
 
 Result
-ApiStore::write_api_to_file(const std::string& file_path, const std::string& buffer)
-{
+ApiStore::write_api_to_file(
+    const std::string& file_path,
+    const std::string& buffer
+) {
   std::ofstream ofs(file_path);
+
   if (!ofs) {
     PLOG_ERROR << "Failed to open file.";
     PLOG_WARNING << strerror(errno);
@@ -69,9 +66,8 @@ ApiStore::write_api_to_file(const std::string& file_path, const std::string& buf
   return Result::Success;
 }
 
-long
-ApiStore::get_server_unix_time()
-{
+Long
+ApiStore::get_server_unix_time() {
   Json::Value result;
   int retry = API_CALL_LEFT;
 
@@ -82,7 +78,7 @@ ApiStore::get_server_unix_time()
       break;
     } else {
       --retry;
-      PLOG_WARNING.printf("Failed to request. Try Again (Last: %d)", retry); 
+      PLOG_WARNING.printf("Failed to request. Try Again (Last: %d)", retry);
       if (retry <= 0) {
         PLOG_ERROR << "Failed to get server_timestamp.";
         return -1;
@@ -94,16 +90,22 @@ ApiStore::get_server_unix_time()
   return std::stol(buffer);
 }
 
-float
-ApiStore::get_macd_signal(const char* symbol, long server_unix_time, float recent_macd, int s, int l, int range)
-{
+double
+ApiStore::get_macd_signal(
+    const char* symbol,
+    Long server_unix_time,
+    double recent_macd,
+    int s,
+    int l,
+    int range
+) {
   std::string str_t = std::to_string(server_unix_time);
   str_t = str_t.substr(0, 10);
-  long unix_t = std::stol(str_t);
+  Long unix_t = std::stol(str_t);
 
-  float num = 0.0f;
+  double num = 0.0f;
 
-  std::vector<float> macds;
+  std::vector<double> macds;
   // get_ema() に渡す vector が降順な為、逆から詰める
   for (int i = (range * 2) - 1; i > 0; --i) {
     std::tm *tm = std::localtime(&unix_t);
@@ -111,7 +113,7 @@ ApiStore::get_macd_signal(const char* symbol, long server_unix_time, float recen
     std::time_t t = std::mktime(tm);
 
     // 落としたミリ秒分繰り上げる
-    float m = get_macd(symbol, t * 1000, s, l);
+    double m = get_macd(symbol, t * 1000, s, l);
 
     macds.push_back(m);
   }
@@ -121,27 +123,35 @@ ApiStore::get_macd_signal(const char* symbol, long server_unix_time, float recen
   return get_ema(macds, range);
 }
 
-float
-ApiStore::get_macd(const char* symbol, long server_unix_time, int s_range, int l_range)
-{
+double
+ApiStore::get_macd(
+    const char* symbol,
+    Long server_unix_time,
+    int s_range,
+    int l_range
+) {
   // interval (足間) * th が 24 になるよう設定する
   const int th = 6;
 
-  float s_ema, l_ema;
+  double s_ema, l_ema;
   Json::Value buffer;
-  std::vector<float> c_pricies;
+  std::vector<double> c_pricies;
 
   Result ret;
 
   // ローソク足データ取得
-#ifdef X2_LOGIC
-  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, s_range * 2 * th);
-#else
-  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, s_range * th);
-#endif
+  ret = get_kline(
+      buffer,
+      symbol,
+      "4h",
+      0,
+      server_unix_time,
+      s_range * 2 * th
+  );
+
   if (ret != Result::Success) {
-      PLOG_ERROR << "Failed to get ema.";
-      return -1;
+    PLOG_ERROR << "Failed to get ema.";
+    return -1;
   }
 
   c_pricies = get_c_pricies_from_klines(buffer);
@@ -149,14 +159,18 @@ ApiStore::get_macd(const char* symbol, long server_unix_time, int s_range, int l
   c_pricies.clear();
   buffer.clear();
 
-#ifdef X2_LOGIC
-  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, l_range * 2 * th);
-#else
-  ret = get_kline(buffer, symbol, "4h", 0, server_unix_time, l_range * th);
-#endif
+  ret = get_kline(
+      buffer,
+      symbol,
+      "4h",
+      0,
+      server_unix_time,
+      l_range * 2 * th
+  );
+
   if (ret != Result::Success) {
-      PLOG_ERROR << "Failed to get ema.";
-      return -1;
+    PLOG_ERROR << "Failed to get ema.";
+    return -1;
   }
 
   c_pricies = get_c_pricies_from_klines(buffer);
@@ -167,41 +181,66 @@ ApiStore::get_macd(const char* symbol, long server_unix_time, int s_range, int l
   return s_ema - l_ema;
 }
 
-std::vector<float>
-ApiStore::get_c_pricies_from_klines(Json::Value& result)
-{
-  std::vector<float> list;
+std::vector<double>
+ApiStore::get_c_pricies_from_klines(Json::Value& buffer) {
+  std::vector<double> list;
 
-  for (auto i = 0; i < result.size(); ++i) {
-    list.push_back(std::stof(result[i][4].asString()));
+  for (auto i = 0; i < buffer.size(); ++i) {
+    // 終値を取得
+    list.push_back(std::stof(buffer[i][ResponseIdx::Kline::CLOSE].asString()));
   }
 
   return list;
 }
 
-float
-ApiStore::get_ema(std::vector<float>& c_pricies, int range)
-{
+std::vector<TradeData>
+ApiStore::get_trade_data_from_klines(Json::Value& buffer) {
+  std::vector<TradeData> list;
+
+  for (auto i = 0; i < buffer.size(); ++i) {
+    double h, l, c;
+
+    h = std::stof(buffer[i][ResponseIdx::Kline::HIGH].asString());
+    l = std::stof(buffer[i][ResponseIdx::Kline::LOW].asString());
+    c = std::stof(buffer[i][ResponseIdx::Kline::CLOSE].asString());
+
+    TradeData td = {h, l, c};
+    list.push_back(td);
+  }
+
+  return list;
+}
+
+std::vector<double>
+ApiStore::get_tp(Json::Value& buffer) {
+  std::vector<double> tp_list;
+  std::vector<TradeData> data = get_trade_data_from_klines(buffer);
+
+  for (auto i = 0; i < data.size(); ++i) {
+    double tp = (data[i].h_price + data[i].l_price + data[i].c_price) / 3;
+    tp_list.push_back(tp);
+  }
+
+  return tp_list;
+}
+
+double
+ApiStore::get_ema(
+  const std::vector<double>& c_pricies,
+  int range
+) {
   // 平滑化定数
-  const float ALPHA = 2.0f / (range + 1);
+  const double ALPHA = 2.0f / (range + 1);
 
   // 1 日目の SMA を算出 (= 1 日目の EMA)
-  float y_ema = 0.0f;
-#ifdef X2_LOGIC
+  double y_ema = 0.0f;
   for (auto i = 0; i < c_pricies.size() / 2; ++i) {
-#else
-  for (auto i = 0; i < c_pricies.size(); ++i) {
-#endif
     y_ema+= c_pricies[i];
   }
   y_ema /= range;
 
-  float t_ema = 0.0f;
-#ifdef X2_LOGIC
+  double t_ema = 0.0f;
   for (auto i = c_pricies.size() / 2; i < c_pricies.size(); ++i) {
-#else
-  for (auto i = 1; i < c_pricies.size(); ++i) {
-#endif
     t_ema = y_ema + ALPHA * (c_pricies[i] - y_ema);
     y_ema = t_ema;
   }
@@ -214,20 +253,27 @@ ApiStore::get_kline(
     Json::Value& result,
     const char* symbol,
     const char* interval_day,
-    long open_unix_time,
-    long close_unix_time,
+    Long open_unix_time,
+    Long close_unix_time,
     int limit
-)
-{
+) {
   int retry = API_CALL_LEFT;
 
   while (1) {
     result.clear();
-    binanceError_t ret = m_market.getKlines(result, symbol, interval_day, open_unix_time, close_unix_time, limit);
+
+    binanceError_t ret = m_market.getKlines(
+        result, symbol,
+        interval_day,
+        open_unix_time,
+        close_unix_time,
+        limit
+    );
+
     if (ret == binanceSuccess) {
       break;
     } else {
-      PLOG_WARNING.printf("Failed to request. Try Again (Last: %d)", retry); 
+      PLOG_WARNING.printf("Failed to request. Try Again (Last: %d)", retry);
       if (--retry <= 0) {
         PLOG_ERROR << "Failed to get KLine.";
         return Result::Failed;
@@ -238,11 +284,9 @@ ApiStore::get_kline(
   return Result::Success;
 }
 
-float
-ApiStore::get_balance(const char* symbol)
-{
+double
+ApiStore::get_balance(const char* symbol) {
   Json::Value result;
-  long recv_window = 10000;
 
   int retry = API_CALL_LEFT;
 
@@ -259,7 +303,7 @@ ApiStore::get_balance(const char* symbol)
     }
   }
 
-  float free = -1.0f;
+  double free = -1.0f;
   for (const Json::Value& coin_info : result) {
     if (coin_info["coin"].asString() == symbol) {
       free = std::stof(coin_info["free"].asString());
@@ -270,8 +314,7 @@ ApiStore::get_balance(const char* symbol)
 }
 
 Result
-ApiStore::purchase(const char* symbol, float balance)
-{
+ApiStore::purchase(const char* symbol, double balance) {
   Json::Value buffer;
   binanceError_t ret;
 
@@ -293,7 +336,19 @@ ApiStore::purchase(const char* symbol, float balance)
   retry = API_CALL_LEFT;
 
   while (retry > 0) {
-    ret = m_account.sendOrder(buffer, symbol, "BUY", "MARKET", "", qty, 0, "0", 0, 0, RECV_WINDOW);
+    ret = m_account.sendOrder(
+        buffer,
+        symbol,
+        "BUY",
+        "MARKET",
+        "",
+        qty,
+        0,
+        "0",
+        0,
+        0,
+        RECV_WINDOW
+    );
     if (ret == binanceSuccess) {
       break;
     } else {
@@ -309,8 +364,7 @@ _FAIL:
 }
 
 Result
-ApiStore::sell(const char* symbol, float balance)
-{
+ApiStore::sell(const char* symbol, double balance) {
   Json::Value buffer;
   binanceError_t ret;
 
@@ -324,7 +378,20 @@ ApiStore::sell(const char* symbol, float balance)
   retry = API_CALL_LEFT;
 
   while (retry > 0) {
-    ret = m_account.sendOrder(buffer, symbol, "SELL", "MARKET", "", qty, 0, "0", 0, 0, RECV_WINDOW);
+    ret = m_account.sendOrder(
+        buffer,
+        symbol,
+        "SELL",
+        "MARKET",
+        "",
+        qty,
+        0,
+        "0",
+        0,
+        0,
+        RECV_WINDOW
+    );
+
     if (ret == binanceSuccess) {
       break;
     } else {
@@ -340,8 +407,7 @@ _FAIL:
 }
 
 double
-ApiStore::get_price(const char* symbol)
-{
+ApiStore::get_price(const char* symbol) {
   int retry = API_CALL_LEFT;
 
   double price = 0;
@@ -355,4 +421,56 @@ ApiStore::get_price(const char* symbol)
   }
 
   return price;
+}
+
+double
+ApiStore::get_cci(
+    const char* symbol,
+    int range,
+    Long server_unix_time
+) {
+  Result ret;
+  Json::Value buffer;
+
+  ret = get_kline(
+      buffer,
+      symbol,
+      "4h",
+      0,
+      server_unix_time,
+      range
+  );
+
+  if (ret != Result::Success) {
+    return -1;
+  }
+
+  // tp: (高値 + 安値 + 終値) / 3
+  // ma: (tp の n 本 SMA)
+  // md: 過去 N 本分の |tp - ma| の平均
+  double tp, ma, md;
+
+  std::vector<double> tp_list = get_tp(buffer);
+
+  // tp
+  tp = tp_list[tp_list.size() - 1];
+
+  // ma
+  ma = 0;
+  for (int i = 0; i < tp_list.size(); ++i) {
+    ma += tp_list[i];
+  }
+  ma /= tp_list.size();
+
+  // md
+  md = 0;
+  for (int i = 0; i < tp_list.size(); ++i) {
+    md += MathUtils::abs(ma - tp_list[i]);
+  }
+  md /= tp_list.size();
+
+  // cci
+  double cci = (tp - ma) / (0.015 * md);
+
+  return cci;
 }

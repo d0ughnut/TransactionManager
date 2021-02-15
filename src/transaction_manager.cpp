@@ -1,44 +1,55 @@
-#include <iostream>
-#include <memory>
 #include <time.h>
 #include <plog/Log.h>
 
-#include "transaction_manager.h"
+#include <iostream>
+#include <memory>
+#include <future>
+#include <thread>
 
+#include "transaction_manager.h"
 #include "result.h"
 #include "api_store.h"
 #include "packet_sender.h"
 #include "state.h"
 #include "config_accessor.h"
+#include "constant.h"
 
 ///// DEBUG_FLG
 // #define IGNORE_TRANSACTION
 
-TransactionManager::TransactionManager()
-{
-}
+TransactionManager::TransactionManager() {}
 
-TransactionManager::~TransactionManager()
-{
-}
+TransactionManager::~TransactionManager() {}
 
 Result
-TransactionManager::initialize()
-{
+TransactionManager::initialize() {
   Result result;
+  // config 読込
   m_config = std::make_unique<ConfigAccessor>();
   result = load_param_from_config();
-  if (result != Result::Success) goto _FAIL;
+  if (result != Result::Success) {
+    PLOG_ERROR << "failed to build config.";
+    goto _FAIL;
+  }
 
+  // api wrappeer 初期化
   m_api = std::make_unique<ApiStore>(m_config.get());
-  if (!m_api) goto _FAIL;
+  if (!m_api) {
+    PLOG_ERROR << "failed to build api store.";
+    goto _FAIL;
+  }
 
   result = m_api->initialize();
-  if (result != Result::Success) goto _FAIL;
+  if (result != Result::Success) {
+    PLOG_ERROR << "failed to init api store.";
+    goto _FAIL;
+  }
 
+  // 状態管理
   m_state = std::make_unique<StateManager>(m_config.get(), this);
   if (!m_state) goto _FAIL;
 
+  // クライアント接続 (失敗しても無視)
   m_packet = std::make_unique<PacketSender>(m_config.get());
   result = connect_to_client();
 
@@ -50,8 +61,7 @@ _FAIL:
 }
 
 Result
-TransactionManager::load_param_from_config()
-{
+TransactionManager::load_param_from_config() {
   Result result;
   result = m_config->load_file();
   if (result != Result::Success) goto _FAIL;
@@ -64,13 +74,19 @@ TransactionManager::load_param_from_config()
   m_macd_s_param = m_config->get_macd_short_param();
   m_macd_l_param = m_config->get_macd_long_param();
   m_signal_param = m_config->get_signal_param();
-  if ((m_macd_s_param < 0) || (m_macd_l_param < 0) || (m_signal_param < 0)) {
+  if ((m_macd_s_param <= 0) || (m_macd_l_param <= 0) || (m_signal_param <= 0)) {
+    goto _FAIL;
+  }
+
+  m_cci_len = m_config->get_cci_length();
+  if (m_cci_len <= 0) {
     goto _FAIL;
   }
 
   m_api_req_interval_sec = m_config->get_api_request_interval_sec();
   if (m_api_req_interval_sec < 0) goto _FAIL;
 
+  // e.g. "BTCUSDT"
   m_symbol = m_src_currency + m_dst_currency;
 
   return Result::Success;
@@ -80,19 +96,18 @@ _FAIL:
 }
 
 Result
-TransactionManager::connect_to_client()
-{
+TransactionManager::connect_to_client() {
   Result result;
 
   if (m_packet) {
-      PLOG_INFO.printf("Connecting...");
-      result = m_packet->con();
-      if (result != Result::Success) {
-        PLOG_WARNING << "Connection canceled.";
-        m_packet = nullptr;
-        goto _FAIL;
-      }
-      PLOG_INFO.printf("Connected to client.");
+    PLOG_INFO.printf("Connecting...");
+    result = m_packet->con();
+    if (result != Result::Success) {
+      PLOG_WARNING << "Connection canceled.";
+      m_packet = nullptr;
+      goto _FAIL;
+    }
+    PLOG_INFO.printf("Connected to client.");
   }
 
   return Result::Success;
@@ -102,20 +117,22 @@ _FAIL:
 }
 
 Result
-TransactionManager::purchase()
-{
-  float src_balance, dst_balance;
+TransactionManager::purchase() {
+  double src_balance, dst_balance;
   double src_per_dst;
   PLOG_INFO << "Should be purchased.";
 #ifndef IGNORE_TRANSACTION
+  // 対象の通貨の残高をウォレットから取得
   src_balance = m_api->get_balance(m_src_currency.c_str());
   dst_balance = m_api->get_balance(m_dst_currency.c_str());
+  // 現在の価格を取得
   src_per_dst = m_api->get_price(m_symbol.c_str());
 
   PLOG_INFO.printf("src_balance: %f", src_balance);
   PLOG_INFO.printf("dst_balance: %f", dst_balance);
 
   PLOG_INFO.printf("transaction (purchase). src: %f, dst: %f", src_balance * src_per_dst, dst_balance);
+  // 買えない、買う必要がない場合は取引機会を無視
   if ((src_balance * src_per_dst) > (dst_balance)) {
     PLOG_WARNING << "ignored transaction (purchase).";
     return Result::Success;
@@ -129,19 +146,19 @@ TransactionManager::purchase()
 }
 
 Result
-TransactionManager::sell()
-{
-  float src_price, dst_price;
-  float src_balance, dst_balance;
+TransactionManager::sell() {
+  double src_balance, dst_balance;
   double src_per_dst;
   PLOG_INFO << "Should be sell it.";
 #ifndef IGNORE_TRANSACTION
+  // 対象の通貨の残高をウォレットから取得
   src_balance = m_api->get_balance(m_src_currency.c_str());
   dst_balance = m_api->get_balance(m_dst_currency.c_str());
-  src_price = m_api->get_price(m_symbol.c_str());
-  dst_price = m_api->get_price(m_symbol.c_str());
+  // 現在の価格を取得
+  src_per_dst = m_api->get_price(m_symbol.c_str());
 
   PLOG_INFO.printf("transaction (sell). src: %f, dst: %f", src_balance * src_per_dst, dst_balance);
+  // 売れない、売る必要がない場合は取引機会を無視
   if ((src_balance * src_per_dst) < (dst_balance)) {
     PLOG_WARNING << "ignored transaction (sell).";
     return Result::Success;
@@ -154,47 +171,143 @@ TransactionManager::sell()
 #endif
 }
 
-void TransactionManager::exec() {
+TransactionSignal
+TransactionManager::request_macd(Long time, PacketData* data) {
+  double macd_value, signal_value;
+
+  macd_value = m_api->get_macd(
+      m_symbol.c_str(),
+      time,
+      m_macd_s_param,
+      m_macd_l_param
+  );
+
+  signal_value = m_api->get_macd_signal(
+      m_symbol.c_str(),
+      time,
+      macd_value,
+      m_macd_s_param,
+      m_macd_l_param,
+      m_signal_param
+  );
+
+  PLOG_INFO.printf("Macd   (%02d, %02d, close): %f",
+      m_macd_s_param,
+      m_macd_l_param,
+      macd_value
+  );
+  PLOG_INFO.printf("Signal (%02d)           : %f",
+      m_signal_param,
+      signal_value
+  );
+
+  if (data) {
+    data->macd   = macd_value;
+    data->signal = signal_value;
+  }
+
+  if (macd_value > signal_value) {
+    return TransactionSignal::PURCHASE;
+  } else {
+    return TransactionSignal::SELL;
+  }
+}
+
+TransactionSignal
+TransactionManager::request_cci(Long time, PacketData* sig) {
+
+  // TODO: 閾値 (変更可能にする)
+  const int high_th = 100;
+  const int low_th  = -100;
+  const int d_high_th = 200;
+  const int d_low_th  = -200;
+
+  // 前回リクエスト時の値
+  static double prev_cci = 0;
+
+  double cur_cci = m_api->get_cci(
+      m_symbol.c_str(),
+      m_cci_len,
+      time
+  );
+
+  PLOG_INFO.printf(" Cci    (%02d)           : %f",
+      m_cci_len,
+      cur_cci
+  );
+
+  TransactionSignal signal;
+  if ((prev_cci > high_th) && (cur_cci <= high_th)) {
+    // 前回上閾値以上、今回上閾値以下の場合 (= 売りシグナル)
+    PLOG_INFO << "cci signal (sell)";
+    signal = TransactionSignal::SELL;
+  } else if ((prev_cci < low_th) && (cur_cci >= low_th)) {
+    // 前回下閾値以下、今回下閾値以上の場合 (= 買いシグナル)
+    PLOG_INFO << "cci signal (purchase)";
+    signal = TransactionSignal::PURCHASE;
+  } else if ((prev_cci > d_high_th) && (cur_cci <= d_high_th)) {
+    // 前回上閾値以上、今回上閾値以下の場合 (= 強い売りシグナル)
+    PLOG_INFO << "cci signal (f_sell)";
+    signal = TransactionSignal::F_SELL;
+  } else if ((prev_cci < low_th) && (cur_cci >= low_th)) {
+    // 前回下閾値以下、今回下閾値以上の場合 (= 強い買いシグナル)
+    PLOG_INFO << "cci signal (f_purchase)";
+    signal = TransactionSignal::F_PURCHASE;
+  } else {
+    // シグナル平常
+    signal = TransactionSignal::IDLE;
+  }
+
+  prev_cci = cur_cci;
+
+  return signal;
+}
+
+void
+TransactionManager::entry(Property::State init_state) {
+  m_state->entry(init_state);
+}
+
+void
+TransactionManager::exec() {
   struct timespec t = {m_api_req_interval_sec, 0};
 
-  float server_timestamp;
-  float macd_value, signal_value;
+  double server_timestamp;
 
-  // event loop
+  // イベントループ
+  // TODO: SIGINT 以外で正常に抜けられるようにする
   while (1) {
     server_timestamp = m_api->get_server_unix_time();
-    macd_value = m_api->get_macd(
-                            m_symbol.c_str(),
-                            server_timestamp,
-                            m_macd_s_param,
-                            m_macd_l_param
-                        );
-    PLOG_INFO.printf("Macd   (%02d, %02d, close): %f", m_macd_s_param, m_macd_l_param, macd_value);
 
-    signal_value = m_api->get_macd_signal(
-                              m_symbol.c_str(),
-                              server_timestamp,
-                              macd_value,
-                              m_macd_s_param,
-                              m_macd_l_param,
-                              m_signal_param
-                          );
-    PLOG_INFO.printf("Signal (%02d)           : %f", m_signal_param, signal_value);
-
+    PacketData* data = nullptr;
     if (m_packet) {
-      PacketData data = {};
-      data.macd = macd_value;
-      data.signal = signal_value;
-      m_packet->send_packet(&data);
+      data = new PacketData();
     }
 
-    Result ret = m_state->exec(macd_value, signal_value);
+    // do in worker th.
+    auto cci_th = std::async(
+        std::launch::async,
+        [&] { return request_cci(server_timestamp, data); }
+    );
+
+    // do in main th.
+    TransactionSignal macd_sig = request_macd(server_timestamp, data);
+    // join & get cci
+    TransactionSignal cci_sig = cci_th.get();
+
+    // クライアントと接続済みならパケットを送信
+    if (data) {
+      m_packet->send_packet(data);
+      delete data;
+    }
+
+    Result ret = m_state->exec(macd_sig, cci_sig);
     if (ret != Result::Success) {
       PLOG_ERROR << "Failed to manage state.";
       return;
     }
 
-    // cooldown
+    // wait (過剰にリクエストしない為)
     nanosleep(&t, NULL);
   }
 }
