@@ -54,6 +54,7 @@ ApiStore::write_api_to_file(
     const std::string& buffer
 ) {
   std::ofstream ofs(file_path);
+
   if (!ofs) {
     PLOG_ERROR << "Failed to open file.";
     PLOG_WARNING << strerror(errno);

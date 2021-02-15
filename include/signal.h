@@ -4,5 +4,7 @@ enum class TransactionSignal {
   INVALID,
   IDLE,
   PURCHASE,
-  SELL
+  SELL,
+  F_PURCHASE,
+  F_SELL
 };

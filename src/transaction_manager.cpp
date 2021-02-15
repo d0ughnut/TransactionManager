@@ -12,9 +12,10 @@
 #include "packet_sender.h"
 #include "state.h"
 #include "config_accessor.h"
+#include "constant.h"
 
 ///// DEBUG_FLG
-#define IGNORE_TRANSACTION
+// #define IGNORE_TRANSACTION
 
 TransactionManager::TransactionManager() {}
 
@@ -218,6 +219,8 @@ TransactionManager::request_cci(Long time, PacketData* sig) {
   // TODO: 閾値 (変更可能にする)
   const int high_th = 100;
   const int low_th  = -100;
+  const int d_high_th = 200;
+  const int d_low_th  = -200;
 
   // 前回リクエスト時の値
   static double prev_cci = 0;
@@ -242,6 +245,14 @@ TransactionManager::request_cci(Long time, PacketData* sig) {
     // 前回下閾値以下、今回下閾値以上の場合 (= 買いシグナル)
     PLOG_INFO << "cci signal (purchase)";
     signal = TransactionSignal::PURCHASE;
+  } else if ((prev_cci > d_high_th) && (cur_cci <= d_high_th)) {
+    // 前回上閾値以上、今回上閾値以下の場合 (= 強い売りシグナル)
+    PLOG_INFO << "cci signal (f_sell)";
+    signal = TransactionSignal::F_SELL;
+  } else if ((prev_cci < low_th) && (cur_cci >= low_th)) {
+    // 前回下閾値以下、今回下閾値以上の場合 (= 強い買いシグナル)
+    PLOG_INFO << "cci signal (f_purchase)";
+    signal = TransactionSignal::F_PURCHASE;
   } else {
     // シグナル平常
     signal = TransactionSignal::IDLE;
@@ -250,6 +261,11 @@ TransactionManager::request_cci(Long time, PacketData* sig) {
   prev_cci = cur_cci;
 
   return signal;
+}
+
+void
+TransactionManager::entry(Property::State init_state) {
+  m_state->entry(init_state);
 }
 
 void

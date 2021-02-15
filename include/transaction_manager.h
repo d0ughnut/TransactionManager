@@ -10,10 +10,9 @@
 #include "state.h"
 #include "signal.h"
 #include "alias.h"
+#include "constant.h"
 
 class StateManager;
-
-// typedef int64_t Long;
 
 class TransactionManager {
  public:
@@ -21,6 +20,7 @@ class TransactionManager {
   ~TransactionManager();
 
   Result initialize();
+  void entry(Property::State init_state);
   void exec();
   Result purchase();
   Result sell();

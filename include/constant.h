@@ -17,3 +17,13 @@ class Kline {
     static const int IGNORE;
 };
 }  // namespace ResponseIdx
+
+namespace Property {
+  enum class State {
+    PURCHASE  = -2,
+    READY_P   = -1,
+    IDLE      = 0,
+    READY_S   = 1,
+    SELL      = 2
+  };
+}  // namespace Property
