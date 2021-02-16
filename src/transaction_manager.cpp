@@ -249,7 +249,7 @@ TransactionManager::request_cci(Long time, PacketData* sig) {
     // 前回上閾値以上、今回上閾値以下の場合 (= 強い売りシグナル)
     PLOG_INFO << "cci signal (f_sell)";
     signal = TransactionSignal::F_SELL;
-  } else if ((prev_cci < low_th) && (cur_cci >= low_th)) {
+  } else if ((prev_cci < d_low_th) && (cur_cci >= d_low_th)) {
     // 前回下閾値以下、今回下閾値以上の場合 (= 強い買いシグナル)
     PLOG_INFO << "cci signal (f_purchase)";
     signal = TransactionSignal::F_PURCHASE;
