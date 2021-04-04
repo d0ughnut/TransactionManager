@@ -26,6 +26,9 @@ class TransactionManager {
   Result sell();
 
  private:
+  static const char* LOG_FILE_DIR_PATH;
+  static const char* LOG_FILE_NAME;
+
   std::unique_ptr<ConfigAccessor> m_config;
   std::unique_ptr<ApiStore> m_api;
   std::unique_ptr<StateManager> m_state;
@@ -35,7 +38,7 @@ class TransactionManager {
   TransactionSignal request_cci(Long time, PacketData* data);
 
   int m_macd_s_param, m_macd_l_param, m_signal_param;
-  int m_cci_len;
+  int m_cci_len, m_tcci_len;
 
   std::string m_src_currency, m_dst_currency;
   std::string m_symbol;
@@ -43,4 +46,6 @@ class TransactionManager {
 
   Result load_param_from_config();
   Result connect_to_client();
+
+  void log_transaction(TransactionSignal signal);
 };

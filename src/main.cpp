@@ -14,6 +14,8 @@
 int main(int argc, char* argv[]) {
   Result result;
 
+  bool is_force_transaction = false;
+
   static plog::ColorConsoleAppender<plog::TxtFormatter> console_appender;
   plog::init(plog::info, &console_appender);
 
@@ -24,8 +26,10 @@ int main(int argc, char* argv[]) {
     std::string arg_str = std::string(argv[1]);
     if (arg_str == "PURCHASE") {
       init_state = Property::State::PURCHASE;
+      is_force_transaction = true;
     } else if (arg_str == "SELL") {
       init_state = Property::State::SELL;
+      is_force_transaction = true;
     } else if (arg_str == "READY_P") {
       init_state = Property::State::READY_P;
     } else if (arg_str == "READY_S") {
@@ -52,7 +56,9 @@ int main(int argc, char* argv[]) {
 
   // Blocking
   manager->entry(init_state);
-  manager->exec();
+  if (!is_force_transaction) {
+    manager->exec();
+  }
 
   PLOG_INFO <<  "Terminated.";
 

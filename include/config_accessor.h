@@ -25,6 +25,7 @@ class ConfigAccessor {
   int get_macd_long_param();
   int get_signal_param();
   int get_cci_length();
+  int get_tcci_length();
 
  private:
   std::string get_string_value(const char* group, const char* key);
