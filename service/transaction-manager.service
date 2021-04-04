@@ -3,9 +3,9 @@ Description=transaction manager for binance
 
 [Service]
 User=root
-ExecStart=/usr/local/bin/TransactionManager
-Restart = always
-Type = simple
+ExecStart=/usr/bin/transaction-manager
+Restart=always
+Type=simple
 
 [Install]
-WantedBy = multi-user.target
+WantedBy=multi-user.target
