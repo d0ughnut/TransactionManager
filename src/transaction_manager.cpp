@@ -2,9 +2,11 @@
 #include <plog/Log.h>
 
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <future>
 #include <thread>
+#include <ctime>
 
 #include "transaction_manager.h"
 #include "result.h"
@@ -14,8 +16,13 @@
 #include "config_accessor.h"
 #include "constant.h"
 
+#include "utils.h"
+
 ///// DEBUG_FLG
 // #define IGNORE_TRANSACTION
+
+const char* TransactionManager::LOG_FILE_DIR_PATH = "/var/log/transaction_manager/";
+const char* TransactionManager::LOG_FILE_NAME     = "transaction.log";
 
 TransactionManager::TransactionManager() {}
 
@@ -79,7 +86,8 @@ TransactionManager::load_param_from_config() {
   }
 
   m_cci_len = m_config->get_cci_length();
-  if (m_cci_len <= 0) {
+  m_tcci_len = m_config->get_tcci_length();
+  if ((m_cci_len <= 0) || (m_tcci_len <= 0)) {
     goto _FAIL;
   }
 
@@ -139,6 +147,9 @@ TransactionManager::purchase() {
   }
 
   PLOG_INFO.printf("Balance: %f", dst_balance);
+
+  log_transaction(TransactionSignal::PURCHASE);
+
   return m_api->purchase(m_symbol.c_str(), dst_balance);
 #else
   return Result::Success;
@@ -165,6 +176,9 @@ TransactionManager::sell() {
   }
 
   PLOG_INFO.printf("Balance: %f", src_balance);
+
+  log_transaction(TransactionSignal::SELL);
+
   return m_api->sell(m_symbol.c_str(), src_balance);
 #else
   return Result::Success;
@@ -215,7 +229,6 @@ TransactionManager::request_macd(Long time, PacketData* data) {
 
 TransactionSignal
 TransactionManager::request_cci(Long time, PacketData* sig) {
-
   // TODO: 閾値 (変更可能にする)
   const int high_th = 100;
   const int low_th  = -100;
@@ -224,10 +237,17 @@ TransactionManager::request_cci(Long time, PacketData* sig) {
 
   // 前回リクエスト時の値
   static double prev_cci = 0;
+  static TransactionSignal last_sig = TransactionSignal::IDLE;
 
   double cur_cci = m_api->get_cci(
       m_symbol.c_str(),
       m_cci_len,
+      time
+  );
+
+  double cur_tcci = m_api->get_cci(
+      m_symbol.c_str(),
+      m_tcci_len,
       time
   );
 
@@ -236,36 +256,63 @@ TransactionManager::request_cci(Long time, PacketData* sig) {
       cur_cci
   );
 
-  TransactionSignal signal;
+  PLOG_INFO.printf(" Tcci   (%02d)           : %f",
+      m_tcci_len,
+      cur_tcci
+  );
+
+  TransactionSignal signal = TransactionSignal::IDLE;
+#if 0
   if ((prev_cci > high_th) && (cur_cci <= high_th)) {
     // 前回上閾値以上、今回上閾値以下の場合 (= 売りシグナル)
     PLOG_INFO << "cci signal (sell)";
     signal = TransactionSignal::SELL;
+    goto _OUT;
   } else if ((prev_cci < low_th) && (cur_cci >= low_th)) {
     // 前回下閾値以下、今回下閾値以上の場合 (= 買いシグナル)
     PLOG_INFO << "cci signal (purchase)";
     signal = TransactionSignal::PURCHASE;
+    goto _OUT;
   } else if ((prev_cci > d_high_th) && (cur_cci <= d_high_th)) {
     // 前回上閾値以上、今回上閾値以下の場合 (= 強い売りシグナル)
     PLOG_INFO << "cci signal (f_sell)";
     signal = TransactionSignal::F_SELL;
+    goto _OUT;
   } else if ((prev_cci < d_low_th) && (cur_cci >= d_low_th)) {
     // 前回下閾値以下、今回下閾値以上の場合 (= 強い買いシグナル)
     PLOG_INFO << "cci signal (f_purchase)";
     signal = TransactionSignal::F_PURCHASE;
-  } else {
-    // シグナル平常
-    signal = TransactionSignal::IDLE;
+    goto _OUT;
+  }
+#endif
+
+  if ((cur_cci > 0) && (cur_tcci > 0)) {
+    PLOG_INFO << "cci signal (w_purchase)";
+    signal = TransactionSignal::PURCHASE;
+  } else if ((cur_cci <= 0) && (cur_tcci <= 0)) {
+    PLOG_INFO << "cci signal (w_sell)";
+    signal = TransactionSignal::SELL;
   }
 
+_OUT:
   prev_cci = cur_cci;
 
-  return signal;
+  if (signal == last_sig) {
+    last_sig = signal;
+    return TransactionSignal::IDLE;
+  } else {
+    last_sig = signal;
+    return signal;
+  }
 }
 
 void
 TransactionManager::entry(Property::State init_state) {
   m_state->entry(init_state);
+  m_state->exec(
+      TransactionSignal::IDLE,
+      TransactionSignal::IDLE
+  );
 }
 
 void
@@ -307,7 +354,34 @@ TransactionManager::exec() {
       return;
     }
 
+
     // wait (過剰にリクエストしない為)
     nanosleep(&t, NULL);
   }
+}
+
+void
+TransactionManager::log_transaction(TransactionSignal signal) {
+  if (!FileUtils::is_exist(TransactionManager::LOG_FILE_DIR_PATH)) {
+    FileUtils::make_directory(TransactionManager::LOG_FILE_DIR_PATH);
+  }
+
+  std::string path = std::string(TransactionManager::LOG_FILE_DIR_PATH) + std::string(TransactionManager::LOG_FILE_NAME);
+  std::ofstream ofs;
+
+  std::time_t now = std::time(nullptr);
+
+  ofs.open(path, std::ios_base::app);
+
+  std::string str_signal;
+
+  if (signal == TransactionSignal::PURCHASE) {
+    str_signal = std::string("PURCHASE");
+  } else if (signal == TransactionSignal::SELL) {
+    str_signal = std::string("SELL    ");
+  } else {
+    str_signal = std::string("UNKNOWN ");
+  }
+
+  ofs << str_signal << ": " << std::ctime(&now);
 }

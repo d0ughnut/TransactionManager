@@ -11,7 +11,7 @@
 #include "utils.h"
 
 const int ApiStore::API_CALL_LEFT = 5;
-const int ApiStore::RECV_WINDOW = 10000;
+const int ApiStore::RECV_WINDOW = 50000;
 
 const std::string ApiStore::API_DIR         = std::string(getenv("HOME")) + std::string("/.bitrader/");
 const std::string ApiStore::API_KEY_PATH    = API_DIR + "key";
@@ -109,7 +109,7 @@ ApiStore::get_macd_signal(
   // get_ema() に渡す vector が降順な為、逆から詰める
   for (int i = (range * 2) - 1; i > 0; --i) {
     std::tm *tm = std::localtime(&unix_t);
-    tm->tm_hour -= 4 * i;
+    tm->tm_hour -= 1 * i;
     std::time_t t = std::mktime(tm);
 
     // 落としたミリ秒分繰り上げる
@@ -131,7 +131,7 @@ ApiStore::get_macd(
     int l_range
 ) {
   // interval (足間) * th が 24 になるよう設定する
-  const int th = 6;
+  const int th = 24;
 
   double s_ema, l_ema;
   Json::Value buffer;
@@ -143,7 +143,7 @@ ApiStore::get_macd(
   ret = get_kline(
       buffer,
       symbol,
-      "4h",
+      "1h",
       0,
       server_unix_time,
       s_range * 2 * th
@@ -162,7 +162,7 @@ ApiStore::get_macd(
   ret = get_kline(
       buffer,
       symbol,
-      "4h",
+      "1h",
       0,
       server_unix_time,
       l_range * 2 * th
@@ -328,7 +328,7 @@ ApiStore::purchase(const char* symbol, double balance) {
   }
 
   // 0.95 は確実に買う為の保険
-  qty = (balance / price) * 0.95;
+  qty = (balance / price) * 0.99;
   qty = MathUtils::round_n(qty, 5);
 
   PLOG_INFO.printf("qty: %f", qty);
@@ -372,7 +372,7 @@ ApiStore::sell(const char* symbol, double balance) {
   double qty;
 
   // 0.95 は確実に売る為の保険
-  qty = MathUtils::round_n(balance * 0.95, 5);
+  qty = MathUtils::round_n(balance * 0.99, 5);
   PLOG_INFO.printf("qty: %f", qty);
 
   retry = API_CALL_LEFT;
@@ -435,7 +435,7 @@ ApiStore::get_cci(
   ret = get_kline(
       buffer,
       symbol,
-      "4h",
+      "1h",
       0,
       server_unix_time,
       range
@@ -454,6 +454,7 @@ ApiStore::get_cci(
 
   // tp
   tp = tp_list[tp_list.size() - 1];
+
 
   // ma
   ma = 0;

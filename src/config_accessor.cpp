@@ -98,6 +98,11 @@ ConfigAccessor::get_cci_length() {
   return get_integer_value("cci", "length");
 }
 
+int
+ConfigAccessor::get_tcci_length() {
+  return get_integer_value("tcci", "length");
+}
+
 std::string
 ConfigAccessor::get_string_value(const char* group, const char* key) {
   gchar* value = g_key_file_get_string(
