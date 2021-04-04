@@ -43,9 +43,9 @@ $ TransactionManager <State>
 
 ## Logic
 
-1. cci が反発するのを待つ
-
-  * 250, -250 のラインで反発した場合は即時決済する
-  * 100, -100 のラインで反発した場合は macd シグナルが交差するまで待機する
-
-2. macd が交差するのを待つ
+|(t) cci \ macd        |macd >= signal|macd < signal
+|:--                   |:--           |:--
+|cci >= 0 && tcci >= 0 |買            |-
+|cci >= 0 && tcci < 0  |-             |-
+|cci < 0 && tcci < 0   |-             |売
+|cci < 0 && tcci >= 0  |-             |-
